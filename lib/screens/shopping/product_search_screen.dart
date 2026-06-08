@@ -19,6 +19,7 @@ class ProductSearchScreen extends StatefulWidget {
 
 class _ProductSearchScreenState extends State<ProductSearchScreen> {
   final _searchCtrl = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
   String? _supermarketFilter;
   List<Product> _results = [];
@@ -30,6 +31,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
     _searchCtrl.addListener(_onSearchChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().loadFavorites();
+      _searchFocus.requestFocus();
     });
   }
 
@@ -37,6 +39,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
   void dispose() {
     _searchCtrl.removeListener(_onSearchChanged);
     _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -112,9 +115,9 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: SearchBar(
                   controller: _searchCtrl,
+                  focusNode: _searchFocus,
                   hintText: 'Buscar producto...',
                   leading: const Icon(Icons.search),
-                  autofocus: true,
                   trailing: [
                     if (_query.isNotEmpty)
                       IconButton(
