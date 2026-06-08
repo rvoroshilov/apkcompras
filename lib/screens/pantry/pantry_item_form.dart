@@ -21,6 +21,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
   late TextEditingController _nameCtrl;
   late TextEditingController _quantityCtrl;
   late TextEditingController _notesCtrl;
+  late TextEditingController _minStockCtrl;
   String _unit = 'ud';
   DateTime? _expiryDate;
   String _imagePath = '';
@@ -36,6 +37,8 @@ class _PantryItemFormState extends State<PantryItemForm> {
     _quantityCtrl =
         TextEditingController(text: e?.quantity.toString() ?? '1');
     _notesCtrl = TextEditingController(text: e?.notes ?? '');
+    _minStockCtrl = TextEditingController(
+        text: (e?.minStock ?? 0) > 0 ? e!.minStock.toString() : '');
     _unit = e?.unit ?? 'ud';
     _expiryDate = e?.expiryDate;
     _imagePath = e?.imagePath ?? '';
@@ -46,6 +49,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
     _nameCtrl.dispose();
     _quantityCtrl.dispose();
     _notesCtrl.dispose();
+    _minStockCtrl.dispose();
     super.dispose();
   }
 
@@ -147,6 +151,21 @@ class _PantryItemFormState extends State<PantryItemForm> {
                 borderRadius: BorderRadius.circular(8),
                 side: BorderSide(color: Colors.grey[300]!),
               ),
+            ),
+            const SizedBox(height: 12),
+
+            // Stock mínimo
+            TextFormField(
+              controller: _minStockCtrl,
+              decoration: InputDecoration(
+                labelText: 'Stock mínimo (opcional)',
+                hintText: 'Alerta cuando bajas de esta cantidad',
+                prefixIcon: const Icon(Icons.inventory_2_outlined),
+                suffixText: _unit,
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
             ),
             const SizedBox(height: 12),
 
@@ -260,6 +279,8 @@ class _PantryItemFormState extends State<PantryItemForm> {
 
     final qty =
         double.parse(_quantityCtrl.text.replaceAll(',', '.'));
+    final minStock =
+        double.tryParse(_minStockCtrl.text.replaceAll(',', '.')) ?? 0.0;
     final provider = context.read<PantryProvider>();
 
     if (_isEdit) {
@@ -271,6 +292,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
         clearExpiryDate: _expiryDate == null,
         imagePath: _imagePath,
         notes: _notesCtrl.text.trim(),
+        minStock: minStock,
       );
       await provider.update(updated);
     } else {
@@ -282,6 +304,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
         expiryDate: _expiryDate,
         imagePath: _imagePath,
         notes: _notesCtrl.text.trim(),
+        minStock: minStock,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ));

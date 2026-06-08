@@ -5,6 +5,7 @@ import '../../providers/pantry_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../settings/settings_screen.dart';
+import '../spending/spending_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -19,6 +20,11 @@ class HomeScreen extends StatelessWidget {
     final monthFmt = DateFormat('MMMM yyyy', 'es_ES');
 
     final now = DateTime.now();
+    final budget = shopping.monthlyBudget;
+    final spend = shopping.monthlySpend;
+    final budgetExceeded = budget > 0 && spend > budget;
+    final budgetNearing = budget > 0 && !budgetExceeded && spend >= budget * 0.8;
+    final belowMin = pantry.itemsBelowMinStock;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -40,41 +46,96 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Presupuesto mensual
-                _SectionCard(
-                  color: theme.colorScheme.primaryContainer,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.euro,
-                              color: theme.colorScheme.primary, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Gasto de ${monthFmt.format(now)}',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
+                // Gasto mensual + presupuesto
+                GestureDetector(
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const SpendingScreen())),
+                  child: _SectionCard(
+                    color: budgetExceeded
+                        ? Colors.red.withOpacity(0.12)
+                        : budgetNearing
+                            ? Colors.orange.withOpacity(0.12)
+                            : theme.colorScheme.primaryContainer,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.euro,
+                                color: budgetExceeded
+                                    ? Colors.red
+                                    : budgetNearing
+                                        ? Colors.orange
+                                        : theme.colorScheme.primary,
+                                size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Gasto de ${monthFmt.format(now)}',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: budgetExceeded
+                                      ? Colors.red
+                                      : budgetNearing
+                                          ? Colors.orange
+                                          : theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Icon(Icons.bar_chart_outlined,
+                                color: Colors.grey[400], size: 18),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          fmt.format(spend),
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: budgetExceeded
+                                ? Colors.red
+                                : budgetNearing
+                                    ? Colors.orange
+                                    : theme.colorScheme.primary,
+                          ),
+                        ),
+                        if (budget > 0) ...[
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: (spend / budget).clamp(0.0, 1.0),
+                              minHeight: 8,
+                              backgroundColor: Colors.grey[200],
+                              color: budgetExceeded
+                                  ? Colors.red
+                                  : budgetNearing
+                                      ? Colors.orange
+                                      : Colors.green,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        fmt.format(shopping.monthlySpend),
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                      Text(
-                        'en compras completadas este mes',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ],
+                          const SizedBox(height: 4),
+                          Text(
+                            budgetExceeded
+                                ? '¡Presupuesto superado! (${fmt.format(budget)})'
+                                : 'Presupuesto: ${fmt.format(budget)} · Resta: ${fmt.format(budget - spend)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: budgetExceeded
+                                  ? Colors.red
+                                  : budgetNearing
+                                      ? Colors.orange
+                                      : Colors.grey[700],
+                            ),
+                          ),
+                        ] else
+                          Text(
+                            'en compras completadas · Toca para ver gráfico',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -185,6 +246,60 @@ class HomeScreen extends StatelessWidget {
                       child: Center(
                         child: Text(
                           'y ${pantry.alertItems.length - 3} más en la pestaña Despensa',
+                          style:
+                              TextStyle(color: Colors.grey[600], fontSize: 13),
+                        ),
+                      ),
+                    ),
+                ],
+
+                // Stock mínimo
+                if (belowMin.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Stock bajo — ¿qué falta?',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ...belowMin.take(5).map((item) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            Border.all(color: Colors.blue.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.inventory_2_outlined,
+                              color: Colors.blue, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          Text(
+                            '${_fmtQty(item.quantity)}/${_fmtQty(item.minStock)} ${item.unit}',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.blue[700]),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  if (belowMin.length > 5)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Center(
+                        child: Text(
+                          'y ${belowMin.length - 5} más en Despensa',
                           style: TextStyle(
                               color: Colors.grey[600], fontSize: 13),
                         ),
@@ -206,17 +321,20 @@ class HomeScreen extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 6),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
+                        color:
+                            theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.shopping_cart_outlined, size: 20),
+                          const Icon(Icons.shopping_cart_outlined,
+                              size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               list.name,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600),
                             ),
                           ),
                           if (list.hasBudget)
@@ -239,6 +357,9 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  static String _fmtQty(double q) =>
+      q == q.truncateToDouble() ? q.toInt().toString() : q.toStringAsFixed(1);
 }
 
 class _SectionCard extends StatelessWidget {
@@ -306,4 +427,3 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
-

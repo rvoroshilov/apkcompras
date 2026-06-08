@@ -12,13 +12,23 @@ class ShoppingListsScreen extends StatefulWidget {
   State<ShoppingListsScreen> createState() => _ShoppingListsScreenState();
 }
 
-class _ShoppingListsScreenState extends State<ShoppingListsScreen> {
+class _ShoppingListsScreenState extends State<ShoppingListsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ShoppingProvider>().load();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -26,39 +36,25 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen> {
     final provider = context.watch<ShoppingProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Listas de compra')),
+      appBar: AppBar(
+        title: const Text('Listas de compra'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(icon: Icon(Icons.shopping_cart_outlined), text: 'Mis listas'),
+            Tab(icon: Icon(Icons.copy_outlined), text: 'Plantillas'),
+          ],
+        ),
+      ),
       body: provider.loading
           ? const Center(child: CircularProgressIndicator())
-          : provider.lists.isEmpty
-              ? const _EmptyState()
-              : ListView(
-                  padding: const EdgeInsets.only(top: 8, bottom: 80),
-                  children: [
-                    if (provider.activeLists.isNotEmpty) ...[
-                      _SectionHeader(
-                          title: 'Activas',
-                          count: provider.activeLists.length),
-                      ...provider.activeLists.map((list) =>
-                          _ShoppingListCard(
-                            list: list,
-                            onTap: () => _openList(list),
-                            onDelete: () => _confirmDelete(list),
-                          )),
-                    ],
-                    if (provider.completedLists.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      _SectionHeader(
-                          title: 'Completadas',
-                          count: provider.completedLists.length),
-                      ...provider.completedLists.map((list) =>
-                          _ShoppingListCard(
-                            list: list,
-                            onTap: () => _openList(list),
-                            onDelete: () => _confirmDelete(list),
-                          )),
-                    ],
-                  ],
-                ),
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _ListsTab(provider: provider),
+                _TemplatesTab(provider: provider),
+              ],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateDialog(),
         icon: const Icon(Icons.add),
@@ -153,7 +149,283 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen> {
       context.read<ShoppingProvider>().deleteList(list.id);
     }
   }
+
+  Future<void> _createFromTemplate(ShoppingList template) async {
+    final nameCtrl =
+        TextEditingController(text: '${template.name} (copia)');
+    final budgetCtrl = TextEditingController();
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Usar plantilla: ${template.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Nombre de la nueva lista',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: budgetCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Presupuesto (€, opcional)',
+                prefixText: '€ ',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.copy_outlined),
+            label: const Text('Crear lista'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true && mounted) {
+      final name = nameCtrl.text.trim();
+      if (name.isEmpty) return;
+      final budget =
+          double.tryParse(budgetCtrl.text.replaceAll(',', '.')) ?? 0.0;
+      final newList = await context
+          .read<ShoppingProvider>()
+          .createFromTemplate(template.id, name, budget);
+      if (mounted) {
+        _tabController.animateTo(0);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => ShoppingListScreen(shoppingList: newList)),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveAsTemplate() async {
+    final provider = context.read<ShoppingProvider>();
+    final allLists = provider.activeLists + provider.completedLists;
+    if (allLists.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Primero crea una lista de compra')),
+      );
+      return;
+    }
+
+    ShoppingList? selected;
+    final nameCtrl = TextEditingController();
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDState) => AlertDialog(
+          title: const Text('Guardar como plantilla'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<ShoppingList>(
+                decoration: const InputDecoration(
+                  labelText: 'Basada en...',
+                  border: OutlineInputBorder(),
+                ),
+                items: allLists
+                    .map((l) =>
+                        DropdownMenuItem(value: l, child: Text(l.name)))
+                    .toList(),
+                onChanged: (v) {
+                  setDState(() {
+                    selected = v;
+                    if (v != null && nameCtrl.text.isEmpty) {
+                      nameCtrl.text = v.name;
+                    }
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: nameCtrl,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de la plantilla',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: selected == null
+                  ? null
+                  : () => Navigator.pop(ctx, true),
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (ok == true && mounted && selected != null) {
+      final name =
+          nameCtrl.text.trim().isEmpty ? selected!.name : nameCtrl.text.trim();
+      final newList =
+          await provider.createFromTemplate(selected!.id, name, 0);
+      await provider.updateList(newList.copyWith(isTemplate: true));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Plantilla "$name" guardada')),
+        );
+      }
+    }
+  }
 }
+
+// ── LIST TAB ──────────────────────────────────────────────────────────────────
+
+class _ListsTab extends StatelessWidget {
+  final ShoppingProvider provider;
+  const _ListsTab({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    if (provider.activeLists.isEmpty && provider.completedLists.isEmpty) {
+      return const _EmptyState();
+    }
+    return ListView(
+      padding: const EdgeInsets.only(top: 8, bottom: 80),
+      children: [
+        if (provider.activeLists.isNotEmpty) ...[
+          _SectionHeader(
+              title: 'Activas', count: provider.activeLists.length),
+          ...provider.activeLists.map((list) => _ShoppingListCard(
+                list: list,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          ShoppingListScreen(shoppingList: list)),
+                ),
+                onDelete: () =>
+                    context.read<ShoppingProvider>().deleteList(list.id),
+              )),
+        ],
+        if (provider.completedLists.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _SectionHeader(
+              title: 'Completadas',
+              count: provider.completedLists.length),
+          ...provider.completedLists.map((list) => _ShoppingListCard(
+                list: list,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          ShoppingListScreen(shoppingList: list)),
+                ),
+                onDelete: () =>
+                    context.read<ShoppingProvider>().deleteList(list.id),
+              )),
+        ],
+      ],
+    );
+  }
+}
+
+// ── TEMPLATES TAB ─────────────────────────────────────────────────────────────
+
+class _TemplatesTab extends StatelessWidget {
+  final ShoppingProvider provider;
+  const _TemplatesTab({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    final templates = provider.templates;
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        // Save-as-template button
+        OutlinedButton.icon(
+          onPressed: () =>
+              (context.findAncestorStateOfType<_ShoppingListsScreenState>())
+                  ?._saveAsTemplate(),
+          icon: const Icon(Icons.bookmark_add_outlined),
+          label: const Text('Guardar lista actual como plantilla'),
+          style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(44)),
+        ),
+        const SizedBox(height: 12),
+        if (templates.isEmpty)
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 32),
+                Icon(Icons.copy_outlined, size: 64, color: Colors.grey[300]),
+                const SizedBox(height: 12),
+                Text(
+                  'Sin plantillas todavía.\nGuarda una lista como plantilla\npara reutilizarla fácilmente.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              ],
+            ),
+          )
+        else
+          ...templates.map((t) => Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .secondaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.copy_outlined,
+                        color:
+                            Theme.of(context).colorScheme.onSecondaryContainer),
+                  ),
+                  title: Text(t.name,
+                      style:
+                          const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(
+                      'Creada el ${DateFormat('dd/MM/yyyy', 'es_ES').format(t.createdAt)}'),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete_outline,
+                        color: Colors.red[300]),
+                    onPressed: () =>
+                        context.read<ShoppingProvider>().deleteList(t.id),
+                  ),
+                  onTap: () =>
+                      (context.findAncestorStateOfType<_ShoppingListsScreenState>())
+                          ?._createFromTemplate(t),
+                ),
+              )),
+        const SizedBox(height: 80),
+      ],
+    );
+  }
+}
+
+// ── SHARED WIDGETS ────────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   final String title;
@@ -176,11 +448,11 @@ class _SectionHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .primaryContainer,
+              color:
+                  Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -188,7 +460,9 @@ class _SectionHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onPrimaryContainer,
               ),
             ),
           ),
@@ -263,7 +537,8 @@ class _ShoppingListCard extends StatelessWidget {
                       Text(
                         'Presupuesto: ${fmt.format(list.budget)}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.primary, fontSize: 12),
+                            color: theme.colorScheme.primary,
+                            fontSize: 12),
                       ),
                   ],
                 ),

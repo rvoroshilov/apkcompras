@@ -10,15 +10,19 @@ class ShoppingProvider extends ChangeNotifier {
   final Map<String, List<ShoppingListItem>> _items = {};
   bool _loading = false;
   double _monthlySpend = 0.0;
+  double _monthlyBudget = 0.0;
 
   List<ShoppingList> get lists => _lists;
   bool get loading => _loading;
   double get monthlySpend => _monthlySpend;
+  double get monthlyBudget => _monthlyBudget;
 
   List<ShoppingList> get activeLists =>
-      _lists.where((l) => !l.isCompleted).toList();
+      _lists.where((l) => !l.isCompleted && !l.isTemplate).toList();
   List<ShoppingList> get completedLists =>
-      _lists.where((l) => l.isCompleted).toList();
+      _lists.where((l) => l.isCompleted && !l.isTemplate).toList();
+  List<ShoppingList> get templates =>
+      _lists.where((l) => l.isTemplate).toList();
 
   List<ShoppingListItem> itemsFor(String listId) => _items[listId] ?? [];
 
@@ -34,7 +38,14 @@ class ShoppingProvider extends ChangeNotifier {
     notifyListeners();
     _lists = await _db.getShoppingLists();
     _monthlySpend = await _db.getMonthlySpend();
+    _monthlyBudget = await _db.getMonthlyBudget();
     _loading = false;
+    notifyListeners();
+  }
+
+  Future<void> setMonthlyBudget(double budget) async {
+    await _db.setMonthlyBudget(budget);
+    _monthlyBudget = budget;
     notifyListeners();
   }
 
@@ -53,6 +64,57 @@ class ShoppingProvider extends ChangeNotifier {
     await _db.insertShoppingList(list);
     _lists.insert(0, list);
     notifyListeners();
+  }
+
+  Future<void> addTemplate(String name) async {
+    final list = ShoppingList(
+      id: const Uuid().v4(),
+      name: name,
+      isTemplate: true,
+      createdAt: DateTime.now(),
+    );
+    await _db.insertShoppingList(list);
+    _lists.insert(0, list);
+    notifyListeners();
+  }
+
+  /// Copies all items from [templateId] into a new active list named [newName].
+  Future<ShoppingList> createFromTemplate(
+      String templateId, String newName, double budget) async {
+    if (_items[templateId] == null) {
+      _items[templateId] = await _db.getShoppingListItems(templateId);
+    }
+    final templateItems = _items[templateId] ?? [];
+
+    final newList = ShoppingList(
+      id: const Uuid().v4(),
+      name: newName,
+      budget: budget,
+      createdAt: DateTime.now(),
+    );
+    await _db.insertShoppingList(newList);
+    _lists.insert(0, newList);
+
+    final newItems = <ShoppingListItem>[];
+    for (final item in templateItems) {
+      final copy = ShoppingListItem(
+        id: const Uuid().v4(),
+        listId: newList.id,
+        productId: item.productId,
+        productName: item.productName,
+        supermarketName: item.supermarketName,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        unit: item.unit,
+        discountPercent: item.discountPercent,
+        notes: item.notes,
+      );
+      await _db.insertShoppingListItem(copy);
+      newItems.add(copy);
+    }
+    _items[newList.id] = newItems;
+    notifyListeners();
+    return newList;
   }
 
   Future<void> updateList(ShoppingList list) async {
@@ -128,7 +190,8 @@ class ShoppingProvider extends ChangeNotifier {
   Map<String, List<ShoppingListItem>> groupByMarket(String listId) {
     final map = <String, List<ShoppingListItem>>{};
     for (final item in itemsFor(listId)) {
-      final key = item.supermarketName.isEmpty ? 'Sin tienda' : item.supermarketName;
+      final key =
+          item.supermarketName.isEmpty ? 'Sin tienda' : item.supermarketName;
       (map[key] ??= []).add(item);
     }
     return map;

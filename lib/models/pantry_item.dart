@@ -7,6 +7,7 @@ class PantryItem {
   final String imagePath;
   final String notes;
   final String? productId;
+  final double minStock;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +20,7 @@ class PantryItem {
     this.imagePath = '',
     this.notes = '',
     this.productId,
+    this.minStock = 0.0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,6 +35,8 @@ class PantryItem {
     if (expiryDate == null || isExpired) return false;
     return expiryDate!.difference(DateTime.now()).inDays <= 3;
   }
+
+  bool get isBelowMinStock => minStock > 0 && quantity < minStock;
 
   int? get daysUntilExpiry {
     if (expiryDate == null) return null;
@@ -49,6 +53,7 @@ class PantryItem {
         'image_path': imagePath,
         'notes': notes,
         'product_id': productId,
+        'min_stock': minStock,
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
       };
@@ -64,6 +69,7 @@ class PantryItem {
         imagePath: (map['image_path'] as String?) ?? '',
         notes: (map['notes'] as String?) ?? '',
         productId: map['product_id'] as String?,
+        minStock: (map['min_stock'] as num?)?.toDouble() ?? 0.0,
         createdAt: DateTime.parse(map['created_at'] as String),
         updatedAt: DateTime.parse(map['updated_at'] as String),
       );
@@ -76,6 +82,7 @@ class PantryItem {
     bool clearExpiryDate = false,
     String? imagePath,
     String? notes,
+    double? minStock,
   }) =>
       PantryItem(
         id: id,
@@ -86,6 +93,7 @@ class PantryItem {
         imagePath: imagePath ?? this.imagePath,
         notes: notes ?? this.notes,
         productId: productId,
+        minStock: minStock ?? this.minStock,
         createdAt: createdAt,
         updatedAt: DateTime.now(),
       );

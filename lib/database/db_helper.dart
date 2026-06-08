@@ -24,8 +24,9 @@ class DBHelper {
     final path = p.join(dbPath, 'apkcompras.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
       onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
     );
   }
@@ -52,6 +53,7 @@ class DBHelper {
         price REAL NOT NULL,
         unit TEXT NOT NULL DEFAULT 'ud',
         quantity_per_unit REAL DEFAULT 1.0,
+        is_favorite INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (supermarket_id) REFERENCES supermarkets(id) ON DELETE CASCADE
@@ -78,6 +80,7 @@ class DBHelper {
         image_path TEXT DEFAULT '',
         notes TEXT DEFAULT '',
         product_id TEXT,
+        min_stock REAL NOT NULL DEFAULT 0.0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
@@ -88,6 +91,7 @@ class DBHelper {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         budget REAL DEFAULT 0.0,
+        is_template INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         completed_at TEXT
       )
@@ -109,6 +113,55 @@ class DBHelper {
         FOREIGN KEY (list_id) REFERENCES shopping_lists(id) ON DELETE CASCADE
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS app_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      ''');
+      await db.execute(
+          'ALTER TABLE products ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0');
+      await db.execute(
+          'ALTER TABLE pantry_items ADD COLUMN min_stock REAL NOT NULL DEFAULT 0.0');
+      await db.execute(
+          'ALTER TABLE shopping_lists ADD COLUMN is_template INTEGER NOT NULL DEFAULT 0');
+    }
+  }
+
+  // ── APP SETTINGS ──────────────────────────────────────────────────────────
+
+  Future<String?> getSetting(String key) async {
+    final database = await db;
+    final maps = await database
+        .query('app_settings', where: 'key = ?', whereArgs: [key]);
+    if (maps.isEmpty) return null;
+    return maps.first['value'] as String?;
+  }
+
+  Future<void> setSetting(String key, String value) async {
+    final database = await db;
+    await database.insert('app_settings', {'key': key, 'value': value},
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<double> getMonthlyBudget() async {
+    final v = await getSetting('monthly_budget');
+    return double.tryParse(v ?? '') ?? 0.0;
+  }
+
+  Future<void> setMonthlyBudget(double budget) async {
+    await setSetting('monthly_budget', budget.toString());
   }
 
   // ── SUPERMARKETS ──────────────────────────────────────────────────────────
@@ -177,6 +230,19 @@ class DBHelper {
     return maps.map(Product.fromMap).toList();
   }
 
+  Future<List<Product>> getFavoriteProducts() async {
+    final database = await db;
+    final maps = await database.query('products',
+        where: 'is_favorite = 1', orderBy: 'name ASC');
+    return maps.map(Product.fromMap).toList();
+  }
+
+  Future<void> toggleFavorite(String productId, bool isFavorite) async {
+    final database = await db;
+    await database.update('products', {'is_favorite': isFavorite ? 1 : 0},
+        where: 'id = ?', whereArgs: [productId]);
+  }
+
   Future<void> insertProduct(Product product) async {
     final database = await db;
     await database.insert('products', product.toMap(),
@@ -218,7 +284,7 @@ class DBHelper {
     final maps = await database.query('price_history',
         where: 'product_id = ?',
         whereArgs: [productId],
-        orderBy: 'recorded_at DESC');
+        orderBy: 'recorded_at ASC');
     return maps.map(PriceHistory.fromMap).toList();
   }
 
@@ -227,6 +293,13 @@ class DBHelper {
   Future<List<PantryItem>> getPantryItems() async {
     final database = await db;
     final maps = await database.query('pantry_items', orderBy: 'name ASC');
+    return maps.map(PantryItem.fromMap).toList();
+  }
+
+  Future<List<PantryItem>> getItemsBelowMinStock() async {
+    final database = await db;
+    final maps = await database.rawQuery(
+        'SELECT * FROM pantry_items WHERE min_stock > 0 AND quantity < min_stock');
     return maps.map(PantryItem.fromMap).toList();
   }
 
@@ -315,8 +388,60 @@ class DBHelper {
       JOIN shopping_lists sl ON sli.list_id = sl.id
       WHERE sl.completed_at IS NOT NULL
         AND sl.completed_at >= ?
+        AND sl.is_template = 0
     ''', [startOfMonth]);
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  /// Returns monthly spending for the last [months] months, ordered oldest→newest.
+  /// Each entry: {'month': 'YYYY-MM', 'total': double}
+  Future<List<Map<String, dynamic>>> getSpendingHistory(int months) async {
+    final database = await db;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month - months + 1, 1);
+    final result = await database.rawQuery('''
+      SELECT strftime('%Y-%m', sl.completed_at) as month,
+             SUM(sli.unit_price * sli.quantity * (1 - sli.discount_percent / 100)) as total
+      FROM shopping_list_items sli
+      JOIN shopping_lists sl ON sli.list_id = sl.id
+      WHERE sl.completed_at IS NOT NULL
+        AND sl.completed_at >= ?
+        AND sl.is_template = 0
+      GROUP BY strftime('%Y-%m', sl.completed_at)
+      ORDER BY month ASC
+    ''', [start.toIso8601String()]);
+    return result
+        .map((r) => {
+              'month': r['month'] as String,
+              'total': (r['total'] as num?)?.toDouble() ?? 0.0,
+            })
+        .toList();
+  }
+
+  /// Returns spending breakdown by supermarket for the current month.
+  /// Each entry: {'market': String, 'total': double}
+  Future<List<Map<String, dynamic>>> getSpendBySupermarket() async {
+    final database = await db;
+    final now = DateTime.now();
+    final startOfMonth =
+        DateTime(now.year, now.month, 1).toIso8601String();
+    final result = await database.rawQuery('''
+      SELECT COALESCE(NULLIF(sli.supermarket_name, ''), 'Sin tienda') as market,
+             SUM(sli.unit_price * sli.quantity * (1 - sli.discount_percent / 100)) as total
+      FROM shopping_list_items sli
+      JOIN shopping_lists sl ON sli.list_id = sl.id
+      WHERE sl.completed_at IS NOT NULL
+        AND sl.completed_at >= ?
+        AND sl.is_template = 0
+      GROUP BY sli.supermarket_name
+      ORDER BY total DESC
+    ''', [startOfMonth]);
+    return result
+        .map((r) => {
+              'market': r['market'] as String,
+              'total': (r['total'] as num?)?.toDouble() ?? 0.0,
+            })
+        .toList();
   }
 
   Future<String> getDatabasePath() async {

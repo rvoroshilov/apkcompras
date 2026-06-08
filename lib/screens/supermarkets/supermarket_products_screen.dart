@@ -4,6 +4,7 @@ import '../../models/supermarket.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../widgets/product_card.dart';
+import 'price_history_screen.dart';
 import 'product_form.dart';
 
 class SupermarketProductsScreen extends StatefulWidget {
@@ -126,6 +127,13 @@ class _SupermarketProductsScreenState
                       supermarketColor: color,
                       onEdit: () => _openForm(p),
                       onDelete: () => _confirmDelete(p.id, p.name),
+                      onFavorite: () =>
+                          context.read<ProductProvider>().toggleFavorite(p),
+                      onHistory: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => PriceHistoryScreen(product: p)),
+                      ),
                     );
                   },
                 ),

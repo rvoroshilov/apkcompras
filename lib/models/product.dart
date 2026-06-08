@@ -9,6 +9,7 @@ class Product {
   final double price;
   final String unit;
   final double quantityPerUnit;
+  final bool isFavorite;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +24,7 @@ class Product {
     required this.price,
     this.unit = 'ud',
     this.quantityPerUnit = 1.0,
+    this.isFavorite = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -65,6 +67,7 @@ class Product {
         'price': price,
         'unit': unit,
         'quantity_per_unit': quantityPerUnit,
+        'is_favorite': isFavorite ? 1 : 0,
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
       };
@@ -80,6 +83,7 @@ class Product {
         price: (map['price'] as num).toDouble(),
         unit: (map['unit'] as String?) ?? 'ud',
         quantityPerUnit: (map['quantity_per_unit'] as num?)?.toDouble() ?? 1.0,
+        isFavorite: (map['is_favorite'] as int? ?? 0) == 1,
         createdAt: DateTime.parse(map['created_at'] as String),
         updatedAt: DateTime.parse(map['updated_at'] as String),
       );
@@ -93,6 +97,7 @@ class Product {
     double? price,
     String? unit,
     double? quantityPerUnit,
+    bool? isFavorite,
   }) =>
       Product(
         id: id,
@@ -105,6 +110,7 @@ class Product {
         price: price ?? this.price,
         unit: unit ?? this.unit,
         quantityPerUnit: quantityPerUnit ?? this.quantityPerUnit,
+        isFavorite: isFavorite ?? this.isFavorite,
         createdAt: createdAt,
         updatedAt: DateTime.now(),
       );

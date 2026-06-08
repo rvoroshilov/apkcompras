@@ -17,6 +17,8 @@ class PantryProvider extends ChangeNotifier {
       _items.where((i) => i.isExpiringSoon).toList();
   List<PantryItem> get alertItems =>
       _items.where((i) => i.isExpired || i.isExpiringSoon).toList();
+  List<PantryItem> get itemsBelowMinStock =>
+      _items.where((i) => i.isBelowMinStock).toList();
 
   Future<void> load() async {
     _loading = true;
@@ -39,6 +41,7 @@ class PantryProvider extends ChangeNotifier {
       imagePath: item.imagePath,
       notes: item.notes,
       productId: item.productId,
+      minStock: item.minStock,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );

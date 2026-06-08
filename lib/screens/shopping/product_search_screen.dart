@@ -28,6 +28,9 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
   void initState() {
     super.initState();
     _searchCtrl.addListener(_onSearchChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProductProvider>().loadFavorites();
+    });
   }
 
   @override
@@ -183,7 +186,10 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
 
           Expanded(
             child: _query.isEmpty
-                ? _HintState()
+                ? _FavoritesOrHint(
+                    listId: widget.listId,
+                    onAdd: _addProductToList,
+                  )
                 : _searching
                     ? const Center(child: CircularProgressIndicator())
                     : displayResults.isEmpty
@@ -495,22 +501,78 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
   }
 }
 
-class _HintState extends StatelessWidget {
+class _FavoritesOrHint extends StatelessWidget {
+  final String listId;
+  final Future<void> Function(Product) onAdd;
+
+  const _FavoritesOrHint({
+    required this.listId,
+    required this.onAdd,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.search, size: 64, color: Colors.grey[300]),
-          const SizedBox(height: 12),
-          Text(
-            'Busca un producto por nombre\no filtra por supermercado',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[500]),
+    final favorites = context.watch<ProductProvider>().favorites;
+    final markets = context.read<SupermarketProvider>();
+
+    if (favorites.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search, size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 12),
+            Text(
+              'Busca un producto por nombre\no filtra por supermercado',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[500]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Marca productos como favoritos ♥\npara encontrarlos aquí rápidamente',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Row(
+            children: [
+              const Icon(Icons.favorite, color: Colors.red, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                'Favoritos',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 20),
+            itemCount: favorites.length,
+            itemBuilder: (ctx, i) {
+              final product = favorites[i];
+              final market = markets.getById(product.supermarketId);
+              return ProductCard(
+                product: product,
+                supermarketName: market?.name ?? '',
+                supermarketColor: market?.flutterColor ?? Colors.grey,
+                showSupermarket: true,
+                onTap: () => onAdd(product),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

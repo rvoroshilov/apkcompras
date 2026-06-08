@@ -11,6 +11,8 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onFavorite;
+  final VoidCallback? onHistory;
   final bool showSupermarket;
   final bool isCheapest;
 
@@ -22,6 +24,8 @@ class ProductCard extends StatelessWidget {
     this.onTap,
     this.onEdit,
     this.onDelete,
+    this.onFavorite,
+    this.onHistory,
     this.showSupermarket = false,
     this.isCheapest = false,
   });
@@ -129,16 +133,40 @@ class ProductCard extends StatelessWidget {
                       ),
                     ),
                   const SizedBox(height: 4),
-                  if (onEdit != null || onDelete != null)
+                  if (onFavorite != null || onHistory != null ||
+                      onEdit != null || onDelete != null)
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (onEdit != null)
+                        if (onFavorite != null)
+                          GestureDetector(
+                            onTap: onFavorite,
+                            child: Icon(
+                              product.isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: 18,
+                              color: product.isFavorite
+                                  ? Colors.red
+                                  : Colors.grey[400],
+                            ),
+                          ),
+                        if (onHistory != null) ...[
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: onHistory,
+                            child: Icon(Icons.show_chart,
+                                size: 18, color: Colors.blue[300]),
+                          ),
+                        ],
+                        if (onEdit != null) ...[
+                          const SizedBox(width: 8),
                           GestureDetector(
                             onTap: onEdit,
                             child: Icon(Icons.edit_outlined,
                                 size: 18, color: Colors.grey[500]),
                           ),
+                        ],
                         if (onDelete != null) ...[
                           const SizedBox(width: 8),
                           GestureDetector(

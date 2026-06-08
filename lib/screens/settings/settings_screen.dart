@@ -8,6 +8,7 @@ import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../utils/backup_helper.dart';
 import '../../utils/notification_helper.dart';
+import '../spending/spending_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -23,6 +24,36 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Presupuesto mensual
+          _SectionTitle('Presupuesto mensual'),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.savings_outlined),
+                  title: const Text('Presupuesto global'),
+                  subtitle: Text(
+                    shopping.monthlyBudget > 0
+                        ? '${fmt.format(shopping.monthlyBudget)} / mes'
+                        : 'Sin límite establecido',
+                  ),
+                  trailing: const Icon(Icons.edit_outlined),
+                  onTap: () => _editBudget(context, shopping),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.bar_chart_outlined),
+                  title: const Text('Panel de gastos'),
+                  subtitle: const Text('Gráficos de gasto mensual y por tienda'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const SpendingScreen())),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Stats section
           _SectionTitle('Estadísticas del mes'),
           Card(
@@ -109,14 +140,8 @@ class SettingsScreen extends StatelessWidget {
                 const ListTile(
                   leading: Icon(Icons.storage_outlined),
                   title: Text('Base de datos'),
-                  subtitle: Text('SQLite local · Los datos no salen del dispositivo'),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.camera_alt_outlined),
-                  title: const Text('Características'),
-                  subtitle: const Text(
-                      'Escáner código de barras · Fotos de productos · Historial de precios · Alertas de caducidad'),
+                  subtitle:
+                      Text('SQLite local · Los datos no salen del dispositivo'),
                 ),
               ],
             ),
@@ -125,6 +150,47 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _editBudget(
+      BuildContext context, ShoppingProvider shopping) async {
+    final ctrl = TextEditingController(
+      text: shopping.monthlyBudget > 0
+          ? shopping.monthlyBudget.toStringAsFixed(2)
+          : '',
+    );
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Presupuesto mensual'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Importe (€)',
+            hintText: '0 para sin límite',
+            prefixText: '€ ',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      final budget =
+          double.tryParse(ctrl.text.replaceAll(',', '.')) ?? 0.0;
+      await context.read<ShoppingProvider>().setMonthlyBudget(budget);
+    }
   }
 
   Future<void> _export(BuildContext context) async {
@@ -171,7 +237,6 @@ class SettingsScreen extends StatelessWidget {
 
     if (!context.mounted) return;
     if (ok) {
-      // Recargar todos los datos en memoria desde la BD restaurada.
       await context.read<SupermarketProvider>().load();
       await context.read<PantryProvider>().load();
       await context.read<ShoppingProvider>().load();
@@ -229,8 +294,8 @@ class _InfoRow extends StatelessWidget {
         Icon(icon, size: 20, color: Colors.grey[600]),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(label,
-              style: TextStyle(color: Colors.grey[700])),
+          child:
+              Text(label, style: TextStyle(color: Colors.grey[700])),
         ),
         Text(
           value,

@@ -7,6 +7,7 @@ import '../../providers/shopping_provider.dart';
 import '../../widgets/shopping_item_card.dart';
 import 'basket_comparison_screen.dart';
 import 'product_search_screen.dart';
+import 'supermarket_mode_screen.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   final ShoppingList shoppingList;
@@ -57,6 +58,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               ),
             ),
           ),
+          if (!_list.isCompleted)
+            IconButton(
+              icon: const Icon(Icons.storefront_outlined),
+              tooltip: 'Modo en el súper',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      SupermarketModeScreen(list: _list),
+                ),
+              ),
+            ),
           if (!_list.isCompleted)
             IconButton(
               icon: const Icon(Icons.check_circle_outline),

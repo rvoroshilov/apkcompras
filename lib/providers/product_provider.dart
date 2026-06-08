@@ -8,15 +8,43 @@ class ProductProvider extends ChangeNotifier {
   final _db = DBHelper();
   final Map<String, List<Product>> _bySupermarket = {};
   List<Product> _searchResults = [];
+  List<Product> _favorites = [];
   bool _loading = false;
 
   bool get loading => _loading;
   List<Product> get searchResults => _searchResults;
+  List<Product> get favorites => _favorites;
 
   List<Product> forSupermarket(String supermarketId) =>
       _bySupermarket[supermarketId] ?? [];
 
-  Future<void> load() async {}
+  Future<void> load() async {
+    _favorites = await _db.getFavoriteProducts();
+    notifyListeners();
+  }
+
+  Future<void> loadFavorites() async {
+    _favorites = await _db.getFavoriteProducts();
+    notifyListeners();
+  }
+
+  Future<void> toggleFavorite(Product product) async {
+    final newFav = !product.isFavorite;
+    await _db.toggleFavorite(product.id, newFav);
+    final updated = product.copyWith(isFavorite: newFav);
+    // Update in-memory supermarket cache
+    final list = _bySupermarket[product.supermarketId];
+    if (list != null) {
+      final idx = list.indexWhere((p) => p.id == product.id);
+      if (idx >= 0) list[idx] = updated;
+    }
+    // Update search results
+    final sIdx = _searchResults.indexWhere((p) => p.id == product.id);
+    if (sIdx >= 0) _searchResults[sIdx] = updated;
+    // Refresh favorites list
+    _favorites = await _db.getFavoriteProducts();
+    notifyListeners();
+  }
 
   Future<void> loadForSupermarket(String supermarketId) async {
     _loading = true;
