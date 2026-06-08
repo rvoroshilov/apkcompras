@@ -162,10 +162,10 @@ class _MonthlyBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxY = history
-            .map((e) => e['total'] as double)
-            .reduce((a, b) => a > b ? a : b) *
-        1.25;
+    final rawMax = history
+        .map((e) => e['total'] as double)
+        .reduce((a, b) => a > b ? a : b);
+    final maxY = rawMax > 0 ? rawMax * 1.25 : 10.0;
 
     // Build a map of month -> total so we can fill in empty months
     final monthMap = {for (final e in history) e['month'] as String: e['total'] as double};
@@ -224,13 +224,19 @@ class _MonthlyBarChart extends StatelessWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                getTitlesWidget: (value, meta) => Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    shortMonths[value.toInt()],
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
+                getTitlesWidget: (value, meta) {
+                  final idx = value.toInt();
+                  if (idx < 0 || idx >= shortMonths.length) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      shortMonths[idx],
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  );
+                },
               ),
             ),
             leftTitles: const AxisTitles(

@@ -187,7 +187,6 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
           Expanded(
             child: _query.isEmpty
                 ? _FavoritesOrHint(
-                    listId: widget.listId,
                     onAdd: _addProductToList,
                   )
                 : _searching
@@ -502,13 +501,9 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
 }
 
 class _FavoritesOrHint extends StatelessWidget {
-  final String listId;
   final Future<void> Function(Product) onAdd;
 
-  const _FavoritesOrHint({
-    required this.listId,
-    required this.onAdd,
-  });
+  const _FavoritesOrHint({required this.onAdd});
 
   @override
   Widget build(BuildContext context) {

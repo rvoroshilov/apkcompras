@@ -234,7 +234,7 @@ class _PriceLineChart extends StatelessWidget {
               barWidth: 3,
               dotData: FlDotData(
                 show: true,
-                getDotPainter: (spot, %, bar, index) =>
+                getDotPainter: (spot, percent, bar, index) =>
                     FlDotCirclePainter(
                   radius: 4,
                   color: Theme.of(context).colorScheme.primary,

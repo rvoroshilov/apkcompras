@@ -308,6 +308,8 @@ class _ListsTab extends StatelessWidget {
     if (provider.activeLists.isEmpty && provider.completedLists.isEmpty) {
       return const _EmptyState();
     }
+    final state =
+        context.findAncestorStateOfType<_ShoppingListsScreenState>();
     return ListView(
       padding: const EdgeInsets.only(top: 8, bottom: 80),
       children: [
@@ -316,14 +318,8 @@ class _ListsTab extends StatelessWidget {
               title: 'Activas', count: provider.activeLists.length),
           ...provider.activeLists.map((list) => _ShoppingListCard(
                 list: list,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          ShoppingListScreen(shoppingList: list)),
-                ),
-                onDelete: () =>
-                    context.read<ShoppingProvider>().deleteList(list.id),
+                onTap: () => state?._openList(list),
+                onDelete: () => state?._confirmDelete(list),
               )),
         ],
         if (provider.completedLists.isNotEmpty) ...[
@@ -333,14 +329,8 @@ class _ListsTab extends StatelessWidget {
               count: provider.completedLists.length),
           ...provider.completedLists.map((list) => _ShoppingListCard(
                 list: list,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          ShoppingListScreen(shoppingList: list)),
-                ),
-                onDelete: () =>
-                    context.read<ShoppingProvider>().deleteList(list.id),
+                onTap: () => state?._openList(list),
+                onDelete: () => state?._confirmDelete(list),
               )),
         ],
       ],

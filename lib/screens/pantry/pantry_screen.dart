@@ -23,6 +23,7 @@ class _PantryScreenState extends State<PantryScreen> {
     ('expiring', 'Caducan pronto'),
     ('expired', 'Caducados'),
     ('ok', 'Bien'),
+    ('low_stock', 'Stock bajo'),
   ];
 
   @override
@@ -195,7 +196,9 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final msg = filter == 'all'
         ? 'Tu despensa está vacía.\nAñade productos con el botón +.'
-        : 'No hay productos en esta categoría.';
+        : filter == 'low_stock'
+            ? 'Ningún producto por debajo\ndel stock mínimo. ¡Bien!'
+            : 'No hay productos en esta categoría.';
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

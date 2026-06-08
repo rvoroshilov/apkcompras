@@ -46,10 +46,33 @@ class PantryItemCard extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      '${_formatQuantity(item.quantity)} ${item.unit}',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: Colors.grey[600]),
+                    Row(
+                      children: [
+                        Text(
+                          '${_formatQuantity(item.quantity)} ${item.unit}',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey[600]),
+                        ),
+                        if (item.isBelowMinStock) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'STOCK BAJO',
+                              style: const TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     if (item.notes.isNotEmpty)
                       Text(
