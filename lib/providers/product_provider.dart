@@ -39,6 +39,8 @@ class ProductProvider extends ChangeNotifier {
   Future<List<Product>> getByName(String name) =>
       _db.getProductsByName(name);
 
+  Future<List<Product>> getAll() => _db.getAllProducts();
+
   Future<Product?> getByBarcode(String barcode) =>
       _db.getProductByBarcode(barcode);
 

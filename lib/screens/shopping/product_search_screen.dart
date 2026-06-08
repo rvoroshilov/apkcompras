@@ -64,6 +64,24 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
     }
   }
 
+  Set<String> _computeCheapest(List<Product> products) {
+    final byName = <String, List<Product>>{};
+    for (final p in products) {
+      byName.putIfAbsent(p.name.toLowerCase().trim(), () => []).add(p);
+    }
+    final ids = <String>{};
+    for (final group in byName.values) {
+      final markets = group.map((p) => p.supermarketId).toSet();
+      if (markets.length < 2) continue; // solo si hay comparación entre tiendas
+      final minPrice =
+          group.map((p) => p.price).reduce((a, b) => a < b ? a : b);
+      for (final p in group) {
+        if (p.price == minPrice) ids.add(p.id);
+      }
+    }
+    return ids;
+  }
+
   @override
   Widget build(BuildContext context) {
     final markets = context.watch<SupermarketProvider>().items;
@@ -74,6 +92,10 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
           .where((p) => p.supermarketId == _supermarketFilter)
           .toList();
     }
+
+    // Marca como "más barato" el producto con menor precio cuando el mismo
+    // nombre aparece en más de un supermercado (comparación útil).
+    final cheapestIds = _computeCheapest(displayResults);
 
     return Scaffold(
       appBar: AppBar(
@@ -183,6 +205,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                                 supermarketColor:
                                     market?.flutterColor ?? Colors.grey,
                                 showSupermarket: true,
+                                isCheapest: cheapestIds.contains(product.id),
                                 onTap: () => _addProductToList(product),
                               );
                             },

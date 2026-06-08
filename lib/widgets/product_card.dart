@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/product.dart';
+import '../utils/backup_helper.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -11,6 +12,7 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final bool showSupermarket;
+  final bool isCheapest;
 
   const ProductCard({
     super.key,
@@ -21,6 +23,7 @@ class ProductCard extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.showSupermarket = false,
+    this.isCheapest = false,
   });
 
   @override
@@ -85,11 +88,31 @@ class ProductCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  if (isCheapest)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'MÁS BARATO',
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   Text(
                     fmt.format(product.price),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
+                      color: isCheapest
+                          ? Colors.green[700]
+                          : theme.colorScheme.primary,
                     ),
                   ),
                   Text(
@@ -137,7 +160,7 @@ class ProductCard extends StatelessWidget {
 
   Widget _buildImage(BuildContext context) {
     if (product.imagePath.isNotEmpty) {
-      final file = File(product.imagePath);
+      final file = File(BackupHelper.resolveImagePath(product.imagePath));
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.file(

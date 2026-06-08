@@ -180,11 +180,14 @@ class HomeScreen extends StatelessWidget {
                     );
                   }),
                   if (pantry.alertItems.length > 3)
-                    Center(
-                      child: TextButton(
-                        onPressed: () {},
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Center(
                         child: Text(
-                            'Ver ${pantry.alertItems.length - 3} más en Despensa'),
+                          'y ${pantry.alertItems.length - 3} más en la pestaña Despensa',
+                          style: TextStyle(
+                              color: Colors.grey[600], fontSize: 13),
+                        ),
                       ),
                     ),
                 ],

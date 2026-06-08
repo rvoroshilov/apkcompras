@@ -13,6 +13,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
     detectionSpeed: DetectionSpeed.noDuplicates,
   );
   bool _detected = false;
+  bool _torchOn = false;
   String? _lastCode;
 
   @override
@@ -31,16 +32,14 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
         title: const Text('Escanear código'),
         actions: [
           IconButton(
-            icon: ValueListenableBuilder(
-              valueListenable: _controller.torchState,
-              builder: (_, state, __) => Icon(
-                state == TorchState.on
-                    ? Icons.flash_on
-                    : Icons.flash_off,
-                color: Colors.white,
-              ),
+            icon: Icon(
+              _torchOn ? Icons.flash_on : Icons.flash_off,
+              color: Colors.white,
             ),
-            onPressed: () => _controller.toggleTorch(),
+            onPressed: () {
+              _controller.toggleTorch();
+              setState(() => _torchOn = !_torchOn);
+            },
           ),
           IconButton(
             icon: const Icon(Icons.flip_camera_ios, color: Colors.white),

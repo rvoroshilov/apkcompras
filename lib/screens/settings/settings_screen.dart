@@ -1,7 +1,11 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../providers/pantry_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../providers/shopping_provider.dart';
+import '../../providers/supermarket_provider.dart';
 import '../../utils/backup_helper.dart';
 import '../../utils/notification_helper.dart';
 
@@ -56,9 +60,9 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.upload_outlined),
-                  title: const Text('Exportar datos'),
+                  title: const Text('Exportar datos (.zip)'),
                   subtitle: const Text(
-                      'Exporta tu base de datos para transferirla o hacer backup'),
+                      'Empaqueta tus datos y fotos para transferirlos a otro móvil'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _export(context),
                 ),
@@ -67,7 +71,7 @@ class SettingsScreen extends StatelessWidget {
                   leading: const Icon(Icons.download_outlined),
                   title: const Text('Importar datos'),
                   subtitle: const Text(
-                      'Importa un backup de MiCompra (archivo .db)'),
+                      'Restaura una copia (.zip) de MiCompra desde este dispositivo'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _import(context),
                 ),
@@ -125,7 +129,7 @@ class SettingsScreen extends StatelessWidget {
 
   Future<void> _export(BuildContext context) async {
     try {
-      await BackupHelper.exportDatabase();
+      await BackupHelper.exportBackup();
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,24 +140,55 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _import(BuildContext context) async {
-    await showDialog(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Importar datos'),
         content: const Text(
-          'Para importar datos:\n\n'
-          '1. Copia el archivo .db a tu dispositivo\n'
-          '2. Usa un explorador de archivos para abrirlo con MiCompra\n\n'
-          'O comparte el archivo directamente desde WhatsApp/correo y ábrelo con MiCompra.',
+          'Vas a restaurar una copia de seguridad (.zip o .db).\n\n'
+          'ATENCIÓN: esto SUSTITUIRÁ todos los datos actuales de la app '
+          '(despensa, tiendas, productos y listas). Haz primero un export si '
+          'quieres conservarlos.\n\n¿Continuar y elegir el archivo?',
         ),
         actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Elegir archivo'),
           ),
         ],
       ),
     );
+    if (confirm != true || !context.mounted) return;
+
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result == null || result.files.single.path == null) return;
+
+    final path = result.files.single.path!;
+    final ok = await BackupHelper.importBackup(path);
+
+    if (!context.mounted) return;
+    if (ok) {
+      // Recargar todos los datos en memoria desde la BD restaurada.
+      await context.read<SupermarketProvider>().load();
+      await context.read<PantryProvider>().load();
+      await context.read<ShoppingProvider>().load();
+      context.read<ProductProvider>().clearSearch();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Copia restaurada correctamente ✓')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'No se pudo importar. ¿El archivo es una copia de MiCompra?')),
+      );
+    }
   }
 }
 

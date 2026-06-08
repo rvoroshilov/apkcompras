@@ -5,6 +5,7 @@ import '../../models/shopping_list.dart';
 import '../../models/shopping_list_item.dart';
 import '../../providers/shopping_provider.dart';
 import '../../widgets/shopping_item_card.dart';
+import 'basket_comparison_screen.dart';
 import 'product_search_screen.dart';
 
 class ShoppingListScreen extends StatefulWidget {
@@ -43,6 +44,19 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       appBar: AppBar(
         title: Text(_list.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.savings_outlined),
+            tooltip: 'Comparar dónde es más barato',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BasketComparisonScreen(
+                  listId: _list.id,
+                  listName: _list.name,
+                ),
+              ),
+            ),
+          ),
           if (!_list.isCompleted)
             IconButton(
               icon: const Icon(Icons.check_circle_outline),

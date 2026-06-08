@@ -314,7 +314,9 @@ class _ProductFormState extends State<ProductForm> {
         child: _imagePath.isNotEmpty
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(11),
-                child: Image.file(File(_imagePath), fit: BoxFit.cover),
+                child: Image.file(
+                    File(BackupHelper.resolveImagePath(_imagePath)),
+                    fit: BoxFit.cover),
               )
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,

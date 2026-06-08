@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/pantry_item.dart';
 import '../../providers/pantry_provider.dart';
 import '../../widgets/pantry_item_card.dart';
 import 'pantry_item_form.dart';
@@ -14,6 +15,7 @@ class PantryScreen extends StatefulWidget {
 class _PantryScreenState extends State<PantryScreen> {
   String _query = '';
   String _filter = 'all';
+  String _sort = 'expiry';
   final _searchCtrl = TextEditingController();
 
   final _filters = const [
@@ -37,19 +39,51 @@ class _PantryScreenState extends State<PantryScreen> {
     super.dispose();
   }
 
+  List<PantryItem> _applySort(List<PantryItem> items) {
+    final list = [...items];
+    switch (_sort) {
+      case 'name':
+        list.sort((a, b) =>
+            a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case 'recent':
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case 'expiry':
+      default:
+        list.sort((a, b) {
+          if (a.expiryDate == null && b.expiryDate == null) {
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          }
+          if (a.expiryDate == null) return 1; // sin fecha al final
+          if (b.expiryDate == null) return -1;
+          return a.expiryDate!.compareTo(b.expiryDate!);
+        });
+    }
+    return list;
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PantryProvider>();
-    final items = provider.filter(_query, _filter);
+    final items = _applySort(provider.filter(_query, _filter));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Despensa'),
         actions: [
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.sort),
-            onPressed: () {},
             tooltip: 'Ordenar',
+            initialValue: _sort,
+            onSelected: (v) => setState(() => _sort = v),
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                  value: 'expiry', child: Text('Por caducidad')),
+              PopupMenuItem(value: 'name', child: Text('Por nombre (A-Z)')),
+              PopupMenuItem(
+                  value: 'recent', child: Text('Añadido recientemente')),
+            ],
           ),
         ],
         bottom: PreferredSize(

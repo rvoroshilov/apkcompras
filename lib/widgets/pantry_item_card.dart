@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/pantry_item.dart';
+import '../utils/backup_helper.dart';
 
 class PantryItemCard extends StatelessWidget {
   final PantryItem item;
@@ -122,7 +123,7 @@ class PantryItemCard extends StatelessWidget {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.file(
-          File(item.imagePath),
+          File(BackupHelper.resolveImagePath(item.imagePath)),
           width: 56,
           height: 56,
           fit: BoxFit.cover,
