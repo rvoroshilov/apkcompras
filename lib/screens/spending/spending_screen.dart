@@ -14,6 +14,7 @@ class _SpendingScreenState extends State<SpendingScreen> {
   final _db = DBHelper();
   List<Map<String, dynamic>> _history = [];
   List<Map<String, dynamic>> _bySupermarket = [];
+  List<Map<String, dynamic>> _byCategory = [];
   bool _loading = true;
 
   @override
@@ -26,10 +27,12 @@ class _SpendingScreenState extends State<SpendingScreen> {
     setState(() => _loading = true);
     final history = await _db.getSpendingHistory(6);
     final byMarket = await _db.getSpendBySupermarket();
+    final byCategory = await _db.getSpendByCategory();
     if (mounted) {
       setState(() {
         _history = history;
         _bySupermarket = byMarket;
+        _byCategory = byCategory;
         _loading = false;
       });
     }
@@ -105,6 +108,81 @@ class _SpendingScreenState extends State<SpendingScreen> {
                                   Expanded(
                                     child: Text(
                                       market,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  Text(
+                                    fmt.format(total),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: color,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: maxTotal > 0 ? total / maxTotal : 0,
+                                  minHeight: 6,
+                                  backgroundColor: color.withOpacity(0.15),
+                                  color: color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                  const SizedBox(height: 20),
+
+                  // Category breakdown
+                  _SectionTitle('Este mes por categoría'),
+                  const SizedBox(height: 8),
+                  if (_byCategory.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Center(
+                          child: Text(
+                            'Sin datos de categorías este mes',
+                            style: TextStyle(color: Colors.grey[500]),
+                          ),
+                        ),
+                      ),
+                    )
+                  else ...[
+                    ..._byCategory.asMap().entries.map((e) {
+                      final index = e.key;
+                      final entry = e.value;
+                      final cat = entry['category'] as String;
+                      final total = entry['total'] as double;
+                      final maxTotal = (_byCategory.first['total'] as double);
+                      final colors = [
+                        Colors.indigo,
+                        Colors.teal,
+                        Colors.deepOrange,
+                        Colors.cyan,
+                        Colors.amber[700]!,
+                        Colors.pink,
+                      ];
+                      final color = colors[index % colors.length];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      cat,
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w600),
                                     ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../models/pantry_item.dart';
 import '../../models/shopping_list.dart';
 import '../../models/shopping_list_item.dart';
+import '../../providers/pantry_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../widgets/shopping_item_card.dart';
 import 'basket_comparison_screen.dart';
@@ -271,11 +273,45 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         ],
       ),
     );
-    if (ok == true && mounted) {
-      await provider.completeList(_list.id);
-      setState(() {
-        _list = _list.copyWith(completedAt: DateTime.now());
-      });
+    if (ok != true || !mounted) return;
+
+    final items = provider.itemsFor(_list.id);
+    await provider.completeList(_list.id);
+    if (mounted) setState(() => _list = _list.copyWith(completedAt: DateTime.now()));
+
+    if (!mounted || items.isEmpty) return;
+    _offerAddToPantry(items);
+  }
+
+  Future<void> _offerAddToPantry(List<ShoppingListItem> items) async {
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _AddToPantrySheet(items: items),
+    );
+    if (selected == null || selected.isEmpty || !mounted) return;
+
+    final pantry = context.read<PantryProvider>();
+    for (final item in items.where((i) => selected.contains(i.id))) {
+      await pantry.add(PantryItem(
+        id: '',
+        name: item.productName,
+        quantity: item.quantity,
+        unit: item.unit,
+        imagePath: '',
+        notes: '',
+        minStock: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${selected.length} producto${selected.length == 1 ? '' : 's'} añadido${selected.length == 1 ? '' : 's'} a la despensa'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
@@ -545,6 +581,122 @@ class _EmptyState extends StatelessWidget {
             'La lista está vacía.\nPulsa "Añadir" para buscar productos.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey[500], fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddToPantrySheet extends StatefulWidget {
+  final List<ShoppingListItem> items;
+  const _AddToPantrySheet({required this.items});
+
+  @override
+  State<_AddToPantrySheet> createState() => _AddToPantrySheetState();
+}
+
+class _AddToPantrySheetState extends State<_AddToPantrySheet> {
+  late Set<String> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.items.map((i) => i.id).toSet();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final allSelected = _selected.length == widget.items.length;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (ctx, scrollCtrl) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '¿Añadir a la despensa?',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _selected = allSelected
+                          ? {}
+                          : widget.items.map((i) => i.id).toSet()),
+                      child: Text(allSelected ? 'Ninguno' : 'Todos'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollCtrl,
+              itemCount: widget.items.length,
+              itemBuilder: (_, i) {
+                final item = widget.items[i];
+                final qty = item.quantity == item.quantity.truncateToDouble()
+                    ? item.quantity.toInt().toString()
+                    : item.quantity.toStringAsFixed(1);
+                return CheckboxListTile(
+                  value: _selected.contains(item.id),
+                  onChanged: (v) => setState(() {
+                    if (v == true) {
+                      _selected.add(item.id);
+                    } else {
+                      _selected.remove(item.id);
+                    }
+                  }),
+                  title: Text(item.productName),
+                  subtitle: Text('$qty ${item.unit}'),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                16, 8, 16, 16 + MediaQuery.of(context).viewPadding.bottom),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Saltar'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () => Navigator.pop(ctx, _selected),
+                    child: Text('Añadir (${_selected.length})'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -5,8 +5,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/pantry_item.dart';
 import '../../providers/pantry_provider.dart';
+import '../../database/db_helper.dart';
 import '../../utils/backup_helper.dart';
 import '../../utils/constants.dart';
+import '../supermarkets/barcode_scanner_screen.dart';
 
 class PantryItemForm extends StatefulWidget {
   final PantryItem? existing;
@@ -59,6 +61,12 @@ class _PantryItemFormState extends State<PantryItemForm> {
       appBar: AppBar(
         title: Text(_isEdit ? 'Editar producto' : 'Añadir a despensa'),
         actions: [
+          if (!_isEdit)
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner_outlined),
+              tooltip: 'Escanear código de barras',
+              onPressed: _scanBarcode,
+            ),
           if (_isEdit)
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
@@ -230,6 +238,36 @@ class _PantryItemFormState extends State<PantryItemForm> {
               ),
       ),
     );
+  }
+
+  Future<void> _scanBarcode() async {
+    final barcode = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
+    if (barcode == null || !mounted) return;
+
+    final product = await DBHelper().getProductByBarcode(barcode);
+    if (!mounted) return;
+
+    if (product != null) {
+      setState(() {
+        _nameCtrl.text = product.name;
+        _unit = product.unit;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Producto encontrado: ${product.name}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Código no encontrado en el catálogo. Introduce el nombre manualmente.'),
+        ),
+      );
+    }
   }
 
   Future<void> _pickImage() async {

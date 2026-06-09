@@ -444,6 +444,34 @@ class DBHelper {
         .toList();
   }
 
+  /// Returns spending breakdown by product category for the current month.
+  /// Joins with products table via product_id; manual items fall under 'Sin categoría'.
+  /// Each entry: {'category': String, 'total': double}
+  Future<List<Map<String, dynamic>>> getSpendByCategory() async {
+    final database = await db;
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
+    final result = await database.rawQuery('''
+      SELECT
+        COALESCE(p.category, 'Sin categoría') as category,
+        SUM(sli.unit_price * sli.quantity * (1 - sli.discount_percent / 100)) as total
+      FROM shopping_list_items sli
+      JOIN shopping_lists sl ON sli.list_id = sl.id
+      LEFT JOIN products p ON sli.product_id = p.id
+      WHERE sl.completed_at IS NOT NULL
+        AND sl.completed_at >= ?
+        AND sl.is_template = 0
+      GROUP BY COALESCE(p.category, 'Sin categoría')
+      ORDER BY total DESC
+    ''', [startOfMonth]);
+    return result
+        .map((r) => {
+              'category': r['category'] as String,
+              'total': (r['total'] as num?)?.toDouble() ?? 0.0,
+            })
+        .toList();
+  }
+
   Future<String> getDatabasePath() async {
     final dbPath = await getDatabasesPath();
     return p.join(dbPath, 'apkcompras.db');
