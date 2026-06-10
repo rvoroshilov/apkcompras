@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/pantry_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../utils/backup_helper.dart';
@@ -18,6 +19,7 @@ class SettingsScreen extends StatelessWidget {
     final fmt = NumberFormat.currency(locale: 'es_ES', symbol: '€');
     final monthFmt = DateFormat('MMMM yyyy', 'es_ES');
     final shopping = context.watch<ShoppingProvider>();
+    final settings = context.watch<SettingsProvider>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
@@ -80,6 +82,19 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Appearance section
+          _SectionTitle('Apariencia'),
+          Card(
+            child: ListTile(
+              leading: Icon(_themeIcon(settings.themeMode)),
+              title: const Text('Tema'),
+              subtitle: Text(_themeLabel(settings.themeMode)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _selectTheme(context, settings),
             ),
           ),
           const SizedBox(height: 16),
@@ -150,6 +165,54 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  IconData _themeIcon(ThemeMode mode) => switch (mode) {
+        ThemeMode.light => Icons.light_mode_outlined,
+        ThemeMode.dark => Icons.dark_mode_outlined,
+        _ => Icons.brightness_auto_outlined,
+      };
+
+  String _themeLabel(ThemeMode mode) => switch (mode) {
+        ThemeMode.light => 'Claro',
+        ThemeMode.dark => 'Oscuro',
+        _ => 'Automático (sistema)',
+      };
+
+  Future<void> _selectTheme(
+      BuildContext context, SettingsProvider settings) async {
+    final mode = await showDialog<ThemeMode>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Tema'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, ThemeMode.system),
+            child: const ListTile(
+              leading: Icon(Icons.brightness_auto_outlined),
+              title: Text('Automático (sistema)'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, ThemeMode.light),
+            child: const ListTile(
+              leading: Icon(Icons.light_mode_outlined),
+              title: Text('Claro'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, ThemeMode.dark),
+            child: const ListTile(
+              leading: Icon(Icons.dark_mode_outlined),
+              title: Text('Oscuro'),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (mode != null && context.mounted) {
+      await context.read<SettingsProvider>().setThemeMode(mode);
+    }
   }
 
   Future<void> _editBudget(

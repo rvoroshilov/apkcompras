@@ -472,6 +472,39 @@ class DBHelper {
         .toList();
   }
 
+  /// Returns the most frequently purchased items across completed lists.
+  /// Each entry: {'name', 'unit', 'count', 'avg_price', 'supermarket_name'}
+  Future<List<Map<String, dynamic>>> getFrequentItems({
+    int minCount = 2,
+    int limit = 10,
+  }) async {
+    final database = await db;
+    final result = await database.rawQuery('''
+      SELECT sli.product_name as name,
+             sli.unit,
+             COUNT(*) as count,
+             ROUND(AVG(sli.unit_price), 2) as avg_price,
+             MAX(sli.supermarket_name) as supermarket_name
+      FROM shopping_list_items sli
+      JOIN shopping_lists sl ON sli.list_id = sl.id
+      WHERE sl.completed_at IS NOT NULL
+        AND sl.is_template = 0
+      GROUP BY LOWER(TRIM(sli.product_name)), sli.unit
+      HAVING count >= ?
+      ORDER BY count DESC
+      LIMIT ?
+    ''', [minCount, limit]);
+    return result
+        .map((r) => {
+              'name': r['name'] as String,
+              'unit': r['unit'] as String,
+              'count': r['count'] as int,
+              'avg_price': (r['avg_price'] as num?)?.toDouble() ?? 0.0,
+              'supermarket_name': (r['supermarket_name'] as String?) ?? '',
+            })
+        .toList();
+  }
+
   Future<String> getDatabasePath() async {
     final dbPath = await getDatabasesPath();
     return p.join(dbPath, 'apkcompras.db');

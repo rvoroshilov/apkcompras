@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+import '../../database/db_helper.dart';
 import '../../models/pantry_item.dart';
 import '../../models/shopping_list.dart';
 import '../../models/shopping_list_item.dart';
@@ -21,6 +23,9 @@ class ShoppingListScreen extends StatefulWidget {
 
 class _ShoppingListScreenState extends State<ShoppingListScreen> {
   late ShoppingList _list;
+  final _db = DBHelper();
+  List<Map<String, dynamic>> _suggestions = [];
+  bool _suggestionsExpanded = false;
 
   @override
   void initState() {
@@ -29,6 +34,29 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ShoppingProvider>().loadItems(_list.id);
     });
+    _loadSuggestions();
+  }
+
+  Future<void> _loadSuggestions() async {
+    final s = await _db.getFrequentItems();
+    if (mounted) setState(() => _suggestions = s);
+  }
+
+  Future<void> _addSuggestion(Map<String, dynamic> s) async {
+    final item = ShoppingListItem(
+      id: const Uuid().v4(),
+      listId: _list.id,
+      productId: null,
+      productName: s['name'] as String,
+      supermarketName: s['supermarket_name'] as String,
+      unitPrice: s['avg_price'] as double,
+      quantity: 1.0,
+      unit: s['unit'] as String,
+      discountPercent: 0.0,
+      notes: '',
+      isChecked: false,
+    );
+    await context.read<ShoppingProvider>().addItem(item);
   }
 
   @override
@@ -172,6 +200,16 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               ],
             ),
           ),
+
+          // Frequent items suggestions
+          if (!_list.isCompleted && _suggestions.isNotEmpty)
+            _SuggestionsSection(
+              suggestions: _suggestions,
+              expanded: _suggestionsExpanded,
+              onToggle: () => setState(
+                  () => _suggestionsExpanded = !_suggestionsExpanded),
+              onAdd: _addSuggestion,
+            ),
 
           // Items
           Expanded(
@@ -582,6 +620,105 @@ class _EmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey[500], fontSize: 16),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuggestionsSection extends StatelessWidget {
+  final List<Map<String, dynamic>> suggestions;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final Future<void> Function(Map<String, dynamic>) onAdd;
+
+  const _SuggestionsSection({
+    required this.suggestions,
+    required this.expanded,
+    required this.onToggle,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat.currency(locale: 'es_ES', symbol: '€');
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: onToggle,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.history, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Frecuentes (${suggestions.length})',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const Spacer(),
+                  Icon(
+                      expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 18),
+                ],
+              ),
+            ),
+          ),
+          if (expanded)
+            SizedBox(
+              height: 84,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                itemCount: suggestions.length,
+                itemBuilder: (ctx, i) {
+                  final s = suggestions[i];
+                  return Card(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: InkWell(
+                      onTap: () => onAdd(s),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              s['name'] as String,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 13),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              fmt.format(s['avg_price'] as double),
+                              style: TextStyle(
+                                color:
+                                    Theme.of(ctx).colorScheme.primary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              '× ${s['count']}',
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          const Divider(height: 1),
         ],
       ),
     );

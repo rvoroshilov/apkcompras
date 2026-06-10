@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../database/db_helper.dart';
 
 class SpendingScreen extends StatefulWidget {
@@ -44,7 +47,16 @@ class _SpendingScreenState extends State<SpendingScreen> {
     final fmt = NumberFormat.currency(locale: 'es_ES', symbol: '€');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Panel de gastos')),
+      appBar: AppBar(
+        title: const Text('Panel de gastos'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_outlined),
+            tooltip: 'Exportar CSV',
+            onPressed: _loading ? null : _exportCsv,
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -218,6 +230,39 @@ class _SpendingScreenState extends State<SpendingScreen> {
               ),
             ),
     );
+  }
+
+  Future<void> _exportCsv() async {
+    final dateFmt = DateFormat('dd/MM/yyyy HH:mm');
+    final sb = StringBuffer()
+      ..writeln('MiCompra — Exportación de gastos')
+      ..writeln('Fecha: ${dateFmt.format(DateTime.now())}')
+      ..writeln()
+      ..writeln('== Historial mensual ==')
+      ..writeln('Mes,Gasto (€)');
+    for (final h in _history) {
+      sb.writeln('${h['month']},${(h['total'] as double).toStringAsFixed(2)}');
+    }
+    sb
+      ..writeln()
+      ..writeln('== Por tienda (mes actual) ==')
+      ..writeln('Tienda,Gasto (€)');
+    for (final m in _bySupermarket) {
+      sb.writeln('"${m['market']}",${(m['total'] as double).toStringAsFixed(2)}');
+    }
+    sb
+      ..writeln()
+      ..writeln('== Por categoría (mes actual) ==')
+      ..writeln('Categoría,Gasto (€)');
+    for (final c in _byCategory) {
+      sb.writeln('"${c['category']}",${(c['total'] as double).toStringAsFixed(2)}');
+    }
+
+    final dir = await getTemporaryDirectory();
+    final file = File(
+        '${dir.path}/micompra_gastos_${DateTime.now().millisecondsSinceEpoch}.csv');
+    await file.writeAsString(sb.toString());
+    await Share.shareXFiles([XFile(file.path)], subject: 'Gastos MiCompra');
   }
 
   Widget _emptyChart(BuildContext context) {

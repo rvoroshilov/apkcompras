@@ -25,6 +25,7 @@ dependencies:
   archive: ^3.4.0
   fl_chart: ^0.68.0
   wakelock_plus: ^1.2.8
+  home_widget: ^0.7.0
 
 dev_dependencies:
   flutter_test:
