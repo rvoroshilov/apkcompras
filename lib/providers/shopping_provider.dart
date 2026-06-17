@@ -1,21 +1,42 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../database/db_helper.dart';
 import '../models/shopping_list.dart';
 import '../models/shopping_list_item.dart';
+import '../services/firebase_service.dart';
 
 class ShoppingProvider extends ChangeNotifier {
   final _db = DBHelper();
   List<ShoppingList> _lists = [];
   final Map<String, List<ShoppingListItem>> _items = {};
   bool _loading = false;
-  double _monthlySpend = 0.0;
   double _monthlyBudget = 0.0;
+  StreamSubscription? _listSub;
+  final Map<String, StreamSubscription> _itemSubs = {};
 
   List<ShoppingList> get lists => _lists;
   bool get loading => _loading;
-  double get monthlySpend => _monthlySpend;
   double get monthlyBudget => _monthlyBudget;
+
+  double get monthlySpend {
+    final now = DateTime.now();
+    double total = 0.0;
+    for (final list in _lists) {
+      if (list.isCompleted &&
+          !list.isTemplate &&
+          list.completedAt != null &&
+          list.completedAt!.month == now.month &&
+          list.completedAt!.year == now.year) {
+        final listItems = _items[list.id] ?? [];
+        for (final item in listItems) {
+          total += item.totalPrice;
+        }
+      }
+    }
+    return total;
+  }
 
   List<ShoppingList> get activeLists =>
       _lists.where((l) => !l.isCompleted && !l.isTemplate).toList();
@@ -33,25 +54,82 @@ class ShoppingProvider extends ChangeNotifier {
       .where((i) => i.isChecked)
       .fold(0.0, (sum, i) => sum + i.totalPrice);
 
+  /// Converts Firestore doc data to a map compatible with ShoppingList.fromMap.
+  /// Firestore stores is_template as int but may receive it as-is.
+  Map<String, dynamic> _listFromFirestore(Map<String, dynamic> data, String id) {
+    return {
+      ...data,
+      'id': id,
+      // Ensure is_template is an int (Firestore may store as int already)
+      'is_template': (data['is_template'] as int?) ?? 0,
+    };
+  }
+
+  /// Converts Firestore doc data to a map compatible with ShoppingListItem.fromMap.
+  Map<String, dynamic> _itemFromFirestore(Map<String, dynamic> data, String id) {
+    return {
+      ...data,
+      'id': id,
+      // Ensure is_checked is an int
+      'is_checked': (data['is_checked'] as int?) ?? 0,
+    };
+  }
+
   Future<void> load() async {
     _loading = true;
     notifyListeners();
-    _lists = await _db.getShoppingLists();
-    _monthlySpend = await _db.getMonthlySpend();
-    _monthlyBudget = await _db.getMonthlyBudget();
-    _loading = false;
-    notifyListeners();
+
+    // Load monthly budget from Firestore household settings
+    final fs = FirebaseService();
+    final houseDoc = fs.db.collection('households').doc(fs.houseId);
+    final snap = await houseDoc.get();
+    if (snap.exists) {
+      _monthlyBudget = (snap.data()?['monthly_budget'] as num?)?.toDouble() ?? 0.0;
+    }
+
+    _listSub?.cancel();
+    _listSub = fs.collection('shopping_lists')
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .listen((snap) {
+      _lists = snap.docs
+          .map((d) => ShoppingList.fromMap(_listFromFirestore(d.data(), d.id)))
+          .toList();
+      _loading = false;
+      notifyListeners();
+    }, onError: (e) {
+      debugPrint('ShoppingProvider list stream error: $e');
+      _loading = false;
+      notifyListeners();
+    });
   }
 
   Future<void> setMonthlyBudget(double budget) async {
-    await _db.setMonthlyBudget(budget);
+    final fs = FirebaseService();
+    await fs.db
+        .collection('households')
+        .doc(fs.houseId)
+        .set({'monthly_budget': budget}, SetOptions(merge: true));
     _monthlyBudget = budget;
     notifyListeners();
   }
 
   Future<void> loadItems(String listId) async {
-    _items[listId] = await _db.getShoppingListItems(listId);
-    notifyListeners();
+    // Cancel existing subscription for this list
+    await _itemSubs[listId]?.cancel();
+
+    final fs = FirebaseService();
+    _itemSubs[listId] = fs.collection('shopping_list_items')
+        .where('list_id', isEqualTo: listId)
+        .snapshots()
+        .listen((snap) {
+      _items[listId] = snap.docs
+          .map((d) => ShoppingListItem.fromMap(_itemFromFirestore(d.data(), d.id)))
+          .toList();
+      notifyListeners();
+    }, onError: (e) {
+      debugPrint('ShoppingProvider items stream error for $listId: $e');
+    });
   }
 
   Future<void> addList(String name, double budget) async {
@@ -61,9 +139,9 @@ class ShoppingProvider extends ChangeNotifier {
       budget: budget,
       createdAt: DateTime.now(),
     );
-    await _db.insertShoppingList(list);
-    _lists.insert(0, list);
-    notifyListeners();
+    final map = list.toMap()..remove('id');
+    await FirebaseService().collection('shopping_lists').doc(list.id).set(map);
+    // Stream updates _lists
   }
 
   Future<void> addTemplate(String name) async {
@@ -73,16 +151,23 @@ class ShoppingProvider extends ChangeNotifier {
       isTemplate: true,
       createdAt: DateTime.now(),
     );
-    await _db.insertShoppingList(list);
-    _lists.insert(0, list);
-    notifyListeners();
+    final map = list.toMap()..remove('id');
+    await FirebaseService().collection('shopping_lists').doc(list.id).set(map);
+    // Stream updates _lists
   }
 
   /// Copies all items from [templateId] into a new active list named [newName].
   Future<ShoppingList> createFromTemplate(
       String templateId, String newName, double budget) async {
+    // Load template items if not already loaded
     if (_items[templateId] == null) {
-      _items[templateId] = await _db.getShoppingListItems(templateId);
+      final snap = await FirebaseService()
+          .collection('shopping_list_items')
+          .where('list_id', isEqualTo: templateId)
+          .get();
+      _items[templateId] = snap.docs
+          .map((d) => ShoppingListItem.fromMap(_itemFromFirestore(d.data(), d.id)))
+          .toList();
     }
     final templateItems = _items[templateId] ?? [];
 
@@ -92,8 +177,8 @@ class ShoppingProvider extends ChangeNotifier {
       budget: budget,
       createdAt: DateTime.now(),
     );
-    await _db.insertShoppingList(newList);
-    _lists.insert(0, newList);
+    final listMap = newList.toMap()..remove('id');
+    await FirebaseService().collection('shopping_lists').doc(newList.id).set(listMap);
 
     final newItems = <ShoppingListItem>[];
     for (final item in templateItems) {
@@ -109,7 +194,11 @@ class ShoppingProvider extends ChangeNotifier {
         discountPercent: item.discountPercent,
         notes: item.notes,
       );
-      await _db.insertShoppingListItem(copy);
+      final itemMap = copy.toMap()..remove('id');
+      await FirebaseService()
+          .collection('shopping_list_items')
+          .doc(copy.id)
+          .set(itemMap);
       newItems.add(copy);
     }
     _items[newList.id] = newItems;
@@ -118,36 +207,46 @@ class ShoppingProvider extends ChangeNotifier {
   }
 
   Future<void> updateList(ShoppingList list) async {
-    await _db.updateShoppingList(list);
-    final idx = _lists.indexWhere((l) => l.id == list.id);
-    if (idx >= 0) _lists[idx] = list;
-    notifyListeners();
+    final map = list.toMap()..remove('id');
+    await FirebaseService().collection('shopping_lists').doc(list.id).update(map);
+    // Stream updates _lists
   }
 
   Future<void> deleteList(String id) async {
-    await _db.deleteShoppingList(id);
-    _lists.removeWhere((l) => l.id == id);
+    // Delete all items in this list first
+    final fs = FirebaseService();
+    final itemsSnap = await fs.collection('shopping_list_items')
+        .where('list_id', isEqualTo: id)
+        .get();
+    final batch = fs.db.batch();
+    for (final doc in itemsSnap.docs) {
+      batch.delete(doc.reference);
+    }
+    batch.delete(fs.collection('shopping_lists').doc(id));
+    await batch.commit();
+
+    // Cancel item subscription for this list
+    await _itemSubs[id]?.cancel();
+    _itemSubs.remove(id);
     _items.remove(id);
-    notifyListeners();
+    // _lists stream will update automatically
   }
 
   Future<void> completeList(String id) async {
     final idx = _lists.indexWhere((l) => l.id == id);
     if (idx < 0) return;
     final updated = _lists[idx].copyWith(completedAt: DateTime.now());
-    await _db.updateShoppingList(updated);
-    _lists[idx] = updated;
-    _monthlySpend = await _db.getMonthlySpend();
-    notifyListeners();
+    final map = updated.toMap()..remove('id');
+    await FirebaseService().collection('shopping_lists').doc(id).update(map);
+    // monthlySpend is computed from in-memory state
   }
 
   Future<void> reopenList(String id) async {
     final idx = _lists.indexWhere((l) => l.id == id);
     if (idx < 0) return;
     final updated = _lists[idx].copyWith(clearCompletedAt: true);
-    await _db.updateShoppingList(updated);
-    _lists[idx] = updated;
-    notifyListeners();
+    final map = updated.toMap()..remove('id');
+    await FirebaseService().collection('shopping_lists').doc(id).update(map);
   }
 
   Future<void> addItem(ShoppingListItem item) async {
@@ -163,17 +262,34 @@ class ShoppingProvider extends ChangeNotifier {
       discountPercent: item.discountPercent,
       notes: item.notes,
     );
-    await _db.insertShoppingListItem(toAdd);
-    _items[item.listId] = [...(itemsFor(item.listId)), toAdd];
-    notifyListeners();
+    final map = toAdd.toMap()..remove('id');
+    await FirebaseService()
+        .collection('shopping_list_items')
+        .doc(toAdd.id)
+        .set(map);
+    // Stream updates _items if subscribed
+    if (_itemSubs.containsKey(item.listId)) {
+      // Stream will fire automatically
+    } else {
+      // Optimistic local update
+      _items[item.listId] = [...(itemsFor(item.listId)), toAdd];
+      notifyListeners();
+    }
   }
 
   Future<void> updateItem(ShoppingListItem item) async {
-    await _db.updateShoppingListItem(item);
-    final list = _items[item.listId] ?? [];
-    final idx = list.indexWhere((i) => i.id == item.id);
-    if (idx >= 0) list[idx] = item;
-    notifyListeners();
+    final map = item.toMap()..remove('id');
+    await FirebaseService()
+        .collection('shopping_list_items')
+        .doc(item.id)
+        .update(map);
+    // Stream will update if subscribed, otherwise update locally
+    if (!_itemSubs.containsKey(item.listId)) {
+      final list = _items[item.listId] ?? [];
+      final idx = list.indexWhere((i) => i.id == item.id);
+      if (idx >= 0) list[idx] = item;
+      notifyListeners();
+    }
   }
 
   Future<void> toggleItem(ShoppingListItem item) async {
@@ -182,9 +298,15 @@ class ShoppingProvider extends ChangeNotifier {
   }
 
   Future<void> deleteItem(ShoppingListItem item) async {
-    await _db.deleteShoppingListItem(item.id);
-    _items[item.listId]?.removeWhere((i) => i.id == item.id);
-    notifyListeners();
+    await FirebaseService()
+        .collection('shopping_list_items')
+        .doc(item.id)
+        .delete();
+    // Stream will update if subscribed, otherwise update locally
+    if (!_itemSubs.containsKey(item.listId)) {
+      _items[item.listId]?.removeWhere((i) => i.id == item.id);
+      notifyListeners();
+    }
   }
 
   Map<String, List<ShoppingListItem>> groupByMarket(String listId) {
@@ -195,5 +317,14 @@ class ShoppingProvider extends ChangeNotifier {
       (map[key] ??= []).add(item);
     }
     return map;
+  }
+
+  @override
+  void dispose() {
+    _listSub?.cancel();
+    for (final sub in _itemSubs.values) {
+      sub.cancel();
+    }
+    super.dispose();
   }
 }

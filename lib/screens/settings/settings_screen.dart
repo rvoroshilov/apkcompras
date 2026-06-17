@@ -7,9 +7,11 @@ import '../../providers/product_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
+import '../../services/firebase_service.dart';
 import '../../utils/backup_helper.dart';
 import '../../utils/notification_helper.dart';
 import '../spending/spending_screen.dart';
+import 'house_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -20,12 +22,29 @@ class SettingsScreen extends StatelessWidget {
     final monthFmt = DateFormat('MMMM yyyy', 'es_ES');
     final shopping = context.watch<ShoppingProvider>();
     final settings = context.watch<SettingsProvider>();
+    final houseCode = FirebaseService().houseCode ?? '------';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Casa compartida section
+          _SectionTitle('Casa compartida'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.home_outlined),
+              title: const Text('Casa compartida'),
+              subtitle: Text('Código: $houseCode'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HouseSettingsScreen()),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Presupuesto mensual
           _SectionTitle('Presupuesto mensual'),
           Card(
@@ -153,10 +172,10 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 const ListTile(
-                  leading: Icon(Icons.storage_outlined),
-                  title: Text('Base de datos'),
+                  leading: Icon(Icons.cloud_outlined),
+                  title: Text('Almacenamiento'),
                   subtitle:
-                      Text('SQLite local · Los datos no salen del dispositivo'),
+                      Text('Firebase Firestore · Sincronización en tiempo real'),
                 ),
               ],
             ),
