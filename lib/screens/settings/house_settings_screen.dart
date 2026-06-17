@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../providers/pantry_provider.dart';
@@ -19,6 +21,14 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
   final _codeController = TextEditingController();
   bool _joining = false;
   String? _error;
+  List<Map<String, dynamic>> _members = [];
+  bool _membersLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMembers();
+  }
 
   @override
   void dispose() {
@@ -26,10 +36,21 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
     super.dispose();
   }
 
+  Future<void> _loadMembers() async {
+    final members = await FirebaseService().getMembers();
+    if (mounted) {
+      setState(() {
+        _members = members;
+        _membersLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final fs = FirebaseService();
     final code = fs.houseCode ?? '------';
+    final myName = fs.displayName;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Casa compartida')),
@@ -88,6 +109,137 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
                     icon: const Icon(Icons.share),
                     label: const Text('Compartir código'),
                   ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // My display name
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.person_outline,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('Tu nombre',
+                          style: Theme.of(context).textTheme.titleSmall),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          myName != null && myName.isNotEmpty
+                              ? myName
+                              : 'Sin nombre — el resto de tu casa no sabe quién eres',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: myName != null
+                                    ? null
+                                    : Theme.of(context).colorScheme.error,
+                              ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _editName,
+                        child: Text(myName != null ? 'Cambiar' : 'Añadir'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Members list
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.group_outlined,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('Miembros de la casa',
+                          style: Theme.of(context).textTheme.titleSmall),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, size: 18),
+                        onPressed: () {
+                          setState(() => _membersLoading = true);
+                          _loadMembers();
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (_membersLoading)
+                    const Center(
+                        child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(),
+                    ))
+                  else if (_members.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Aún nadie con nombre. Añade el tuyo arriba.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey,
+                            ),
+                      ),
+                    )
+                  else
+                    ..._members.map((m) {
+                      final isMe = m['id'] == FirebaseService().userId;
+                      final name = (m['name'] as String?) ?? 'Miembro';
+                      final lastSeenRaw = m['last_seen'];
+                      String lastSeenStr = '';
+                      if (lastSeenRaw != null) {
+                        try {
+                          final DateTime dt;
+                          if (lastSeenRaw is Timestamp) {
+                            dt = lastSeenRaw.toDate();
+                          } else if (lastSeenRaw is String) {
+                            dt = DateTime.parse(lastSeenRaw);
+                          } else {
+                            dt = DateTime.now();
+                          }
+                          lastSeenStr = _relativeTime(dt);
+                        } catch (_) {}
+                      }
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primaryContainer,
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          isMe ? '$name (tú)' : name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: lastSeenStr.isNotEmpty
+                            ? Text('Visto $lastSeenStr')
+                            : null,
+                      );
+                    }),
                 ],
               ),
             ),
@@ -185,6 +337,51 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
     );
   }
 
+  String _relativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 2) return 'ahora mismo';
+    if (diff.inMinutes < 60) return 'hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'hace ${diff.inHours} h';
+    if (diff.inDays < 7) return 'hace ${diff.inDays} días';
+    return DateFormat('d MMM', 'es_ES').format(dt);
+  }
+
+  Future<void> _editName() async {
+    final fs = FirebaseService();
+    final ctrl = TextEditingController(text: fs.displayName ?? '');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Tu nombre'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Nombre',
+            hintText: 'Ej: María',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && ctrl.text.trim().isNotEmpty && mounted) {
+      await fs.setDisplayName(ctrl.text.trim());
+      setState(() {});
+      _loadMembers();
+    }
+  }
+
   /// Re-subscribes all providers to the new household's Firestore streams.
   void _reloadProviders() {
     context.read<SupermarketProvider>().load();
@@ -210,6 +407,8 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
       if (!mounted) return;
       if (success) {
         _reloadProviders();
+        setState(() => _membersLoading = true);
+        _loadMembers();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Te has unido a la casa correctamente')),
         );

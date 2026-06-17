@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import '../models/pantry_item.dart';
 import '../models/shopping_list.dart';
 import '../models/shopping_list_item.dart';
 import '../services/firebase_service.dart';
@@ -293,6 +294,21 @@ class ShoppingProvider extends ChangeNotifier {
   Future<void> toggleItem(ShoppingListItem item) async {
     final updated = item.copyWith(isChecked: !item.isChecked);
     await updateItem(updated);
+  }
+
+  Future<void> addFromPantryItems(String listId, List<PantryItem> items) async {
+    for (final p in items) {
+      final needed = (p.minStock > p.quantity) ? p.minStock - p.quantity : 1.0;
+      await addItem(ShoppingListItem(
+        id: const Uuid().v4(),
+        listId: listId,
+        productId: p.productId,
+        productName: p.name,
+        quantity: needed,
+        unit: p.unit,
+        unitPrice: 0.0,
+      ));
+    }
   }
 
   Future<void> deleteItem(ShoppingListItem item) async {

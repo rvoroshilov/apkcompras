@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../models/pantry_item.dart';
+import '../../models/shopping_list.dart';
 import '../../providers/pantry_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
@@ -256,10 +258,16 @@ class HomeScreen extends StatelessWidget {
                 // Stock mínimo
                 if (belowMin.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text(
-                    'Stock bajo — ¿qué falta?',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Stock bajo — ¿qué falta?',
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   ...belowMin.take(5).map((item) {
@@ -305,6 +313,16 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _addLowStockToList(
+                          context, belowMin, shopping),
+                      icon: const Icon(Icons.add_shopping_cart, size: 18),
+                      label: const Text('Añadir todo a la lista de compra'),
+                    ),
+                  ),
                 ],
 
                 // Listas activas
@@ -360,6 +378,53 @@ class HomeScreen extends StatelessWidget {
 
   static String _fmtQty(double q) =>
       q == q.truncateToDouble() ? q.toInt().toString() : q.toStringAsFixed(1);
+
+  Future<void> _addLowStockToList(
+    BuildContext context,
+    List<PantryItem> items,
+    ShoppingProvider shopping,
+  ) async {
+    final activeLists = shopping.activeLists;
+    if (activeLists.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('No hay listas activas. Crea una lista de compra primero.')),
+      );
+      return;
+    }
+
+    ShoppingList targetList;
+    if (activeLists.length == 1) {
+      targetList = activeLists.first;
+    } else {
+      final picked = await showDialog<ShoppingList>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: const Text('Añadir a lista'),
+          children: activeLists
+              .map((l) => SimpleDialogOption(
+                    onPressed: () => Navigator.pop(ctx, l),
+                    child: Text(l.name),
+                  ))
+              .toList(),
+        ),
+      );
+      if (picked == null || !context.mounted) return;
+      targetList = picked;
+    }
+
+    await shopping.addFromPantryItems(targetList.id, items);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${items.length} producto${items.length == 1 ? '' : 's'} añadido${items.length == 1 ? '' : 's'} a "${targetList.name}"'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
 }
 
 class _SectionCard extends StatelessWidget {
