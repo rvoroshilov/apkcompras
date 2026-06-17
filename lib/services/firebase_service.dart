@@ -20,8 +20,13 @@ class FirebaseService {
       db.collection('households').doc(_houseId).collection(name);
 
   Future<void> init() async {
-    await Firebase.initializeApp();
-    await FirebaseAuth.instance.signInAnonymously();
+    // Firebase.initializeApp() is already called in main.dart before this runs.
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    }
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+    }
     final prefs = await SharedPreferences.getInstance();
     _houseId = prefs.getString(_houseKey);
     if (_houseId == null) {
