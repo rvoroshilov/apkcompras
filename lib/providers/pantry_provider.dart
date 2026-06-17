@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
-import '../database/db_helper.dart';
 import '../models/pantry_item.dart';
 import '../services/firebase_service.dart';
 import '../utils/notification_helper.dart';
 
 class PantryProvider extends ChangeNotifier {
-  final _db = DBHelper();
   List<PantryItem> _items = [];
   bool _loading = false;
   StreamSubscription? _sub;

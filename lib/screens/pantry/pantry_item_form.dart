@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/pantry_item.dart';
 import '../../providers/pantry_provider.dart';
-import '../../database/db_helper.dart';
+import '../../providers/product_provider.dart';
 import '../../utils/backup_helper.dart';
 import '../../utils/constants.dart';
 import '../supermarkets/barcode_scanner_screen.dart';
@@ -247,7 +247,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
     );
     if (barcode == null || !mounted) return;
 
-    final product = await DBHelper().getProductByBarcode(barcode);
+    final product = await context.read<ProductProvider>().getByBarcode(barcode);
     if (!mounted) return;
 
     if (product != null) {

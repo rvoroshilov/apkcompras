@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../providers/pantry_provider.dart';
+import '../../providers/product_provider.dart';
+import '../../providers/shopping_provider.dart';
+import '../../providers/supermarket_provider.dart';
 import '../../services/firebase_service.dart';
 
 class HouseSettingsScreen extends StatefulWidget {
@@ -180,6 +185,14 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
     );
   }
 
+  /// Re-subscribes all providers to the new household's Firestore streams.
+  void _reloadProviders() {
+    context.read<SupermarketProvider>().load();
+    context.read<PantryProvider>().load();
+    context.read<ShoppingProvider>().load();
+    context.read<ProductProvider>().load();
+  }
+
   Future<void> _joinHouse() async {
     final code = _codeController.text.trim();
     if (code.length != 6) {
@@ -196,6 +209,7 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
       final success = await FirebaseService().joinHouse(code);
       if (!mounted) return;
       if (success) {
+        _reloadProviders();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Te has unido a la casa correctamente')),
         );
@@ -243,6 +257,7 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
     try {
       await FirebaseService().leaveHouse();
       if (mounted) {
+        _reloadProviders();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Has abandonado la casa. Nueva casa creada.')),
         );

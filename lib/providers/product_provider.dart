@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
-import '../database/db_helper.dart';
 import '../models/product.dart';
 import '../models/price_history.dart';
 import '../services/firebase_service.dart';
 
 class ProductProvider extends ChangeNotifier {
-  final _db = DBHelper();
   final Map<String, List<Product>> _bySupermarket = {};
   List<Product> _searchResults = [];
   List<Product> _favorites = [];
@@ -141,12 +139,31 @@ class ProductProvider extends ChangeNotifier {
     return Product.fromMap(_productFromFirestore(d.data(), d.id));
   }
 
-  Future<List<PriceHistory>> getPriceHistory(String productId) =>
-      _db.getPriceHistory(productId);
+  Future<List<PriceHistory>> getPriceHistory(String productId) async {
+    final snap = await FirebaseService()
+        .collection('price_history')
+        .where('product_id', isEqualTo: productId)
+        .get();
+    final history = snap.docs
+        .map((d) => PriceHistory.fromMap({...d.data(), 'id': d.id}))
+        .toList();
+    history.sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
+    return history;
+  }
+
+  Future<void> _recordPrice(String productId, double price) async {
+    final id = const Uuid().v4();
+    await FirebaseService().collection('price_history').doc(id).set({
+      'product_id': productId,
+      'price': price,
+      'recorded_at': DateTime.now().toIso8601String(),
+    });
+  }
 
   Future<void> add(Product product) async {
     final map = product.toMap()..remove('id');
     await FirebaseService().collection('products').doc(product.id).set(map);
+    await _recordPrice(product.id, product.price);
     // Update in-memory cache optimistically if stream not active
     if (!_supermarketSubs.containsKey(product.supermarketId)) {
       final list = _bySupermarket[product.supermarketId] ?? [];
@@ -159,8 +176,15 @@ class ProductProvider extends ChangeNotifier {
   }
 
   Future<void> update(Product product) async {
+    // Record a price-history point if the price changed.
+    final doc =
+        await FirebaseService().collection('products').doc(product.id).get();
+    final oldPrice = (doc.data()?['price'] as num?)?.toDouble();
     final map = product.toMap()..remove('id');
     await FirebaseService().collection('products').doc(product.id).update(map);
+    if (oldPrice == null || oldPrice != product.price) {
+      await _recordPrice(product.id, product.price);
+    }
     // Stream will update if active
     if (!_supermarketSubs.containsKey(product.supermarketId)) {
       final list = _bySupermarket[product.supermarketId] ?? [];

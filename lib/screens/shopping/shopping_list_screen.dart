@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import '../../database/db_helper.dart';
+import '../../services/analytics_service.dart';
 import '../../models/pantry_item.dart';
 import '../../models/shopping_list.dart';
 import '../../models/shopping_list_item.dart';
@@ -23,7 +23,7 @@ class ShoppingListScreen extends StatefulWidget {
 
 class _ShoppingListScreenState extends State<ShoppingListScreen> {
   late ShoppingList _list;
-  final _db = DBHelper();
+  final _analytics = AnalyticsService();
   List<Map<String, dynamic>> _suggestions = [];
   bool _suggestionsExpanded = false;
 
@@ -38,7 +38,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   Future<void> _loadSuggestions() async {
-    final s = await _db.getFrequentItems();
+    final s = await _analytics.getFrequentItems();
     if (mounted) setState(() => _suggestions = s);
   }
 

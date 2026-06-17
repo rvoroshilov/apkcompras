@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../database/db_helper.dart';
+import '../../services/analytics_service.dart';
 
 class SpendingScreen extends StatefulWidget {
   const SpendingScreen({super.key});
@@ -14,7 +14,7 @@ class SpendingScreen extends StatefulWidget {
 }
 
 class _SpendingScreenState extends State<SpendingScreen> {
-  final _db = DBHelper();
+  final _analytics = AnalyticsService();
   List<Map<String, dynamic>> _history = [];
   List<Map<String, dynamic>> _bySupermarket = [];
   List<Map<String, dynamic>> _byCategory = [];
@@ -28,9 +28,9 @@ class _SpendingScreenState extends State<SpendingScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final history = await _db.getSpendingHistory(6);
-    final byMarket = await _db.getSpendBySupermarket();
-    final byCategory = await _db.getSpendByCategory();
+    final history = await _analytics.getSpendingHistory(6);
+    final byMarket = await _analytics.getSpendBySupermarket();
+    final byCategory = await _analytics.getSpendByCategory();
     if (mounted) {
       setState(() {
         _history = history;

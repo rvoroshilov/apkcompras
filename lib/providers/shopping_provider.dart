@@ -2,13 +2,11 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
-import '../database/db_helper.dart';
 import '../models/shopping_list.dart';
 import '../models/shopping_list_item.dart';
 import '../services/firebase_service.dart';
 
 class ShoppingProvider extends ChangeNotifier {
-  final _db = DBHelper();
   List<ShoppingList> _lists = [];
   final Map<String, List<ShoppingListItem>> _items = {};
   bool _loading = false;
