@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../database/db_helper.dart';
 import '../models/supermarket.dart';
+import '../services/firebase_service.dart';
 import '../utils/constants.dart';
 
 class SupermarketProvider extends ChangeNotifier {
   final _db = DBHelper();
   List<Supermarket> _items = [];
   bool _loading = false;
+  StreamSubscription? _sub;
 
   List<Supermarket> get items => _items;
   bool get loading => _loading;
@@ -15,9 +18,23 @@ class SupermarketProvider extends ChangeNotifier {
   Future<void> load() async {
     _loading = true;
     notifyListeners();
-    _items = await _db.getSupermarkets();
-    _loading = false;
-    notifyListeners();
+    final fs = FirebaseService();
+    _sub?.cancel();
+    _sub = fs.collection('supermarkets')
+        .orderBy('name')
+        .snapshots()
+        .listen((snap) {
+      _items = snap.docs.map((d) {
+        final data = d.data();
+        return Supermarket.fromMap({...data, 'id': d.id});
+      }).toList();
+      _loading = false;
+      notifyListeners();
+    }, onError: (e) {
+      debugPrint('SupermarketProvider stream error: $e');
+      _loading = false;
+      notifyListeners();
+    });
   }
 
   Future<void> add(String name, int color) async {
@@ -27,23 +44,19 @@ class SupermarketProvider extends ChangeNotifier {
       color: color,
       createdAt: DateTime.now(),
     );
-    await _db.insertSupermarket(s);
-    _items.add(s);
-    _items.sort((a, b) => a.name.compareTo(b.name));
-    notifyListeners();
+    await FirebaseService().collection('supermarkets').doc(s.id).set(s.toMap()..remove('id'));
+    // Stream will update _items automatically
   }
 
   Future<void> update(Supermarket s) async {
-    await _db.updateSupermarket(s);
-    final idx = _items.indexWhere((i) => i.id == s.id);
-    if (idx >= 0) _items[idx] = s;
-    notifyListeners();
+    final map = s.toMap()..remove('id');
+    await FirebaseService().collection('supermarkets').doc(s.id).update(map);
+    // Stream will update _items automatically
   }
 
   Future<void> delete(String id) async {
-    await _db.deleteSupermarket(id);
-    _items.removeWhere((i) => i.id == id);
-    notifyListeners();
+    await FirebaseService().collection('supermarkets').doc(id).delete();
+    // Stream will update _items automatically
   }
 
   Supermarket? getById(String id) {
@@ -62,5 +75,11 @@ class SupermarketProvider extends ChangeNotifier {
     return AppConstants.supermarketColors[
             _items.length % AppConstants.supermarketColors.length]
         .value;
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }

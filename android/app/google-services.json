@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "176939323980",
+    "project_id": "micompra-3aa0d",
+    "storage_bucket": "micompra-3aa0d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:176939323980:android:5d59e9cae26be24b161ae9",
+        "android_client_info": {
+          "package_name": "com.example.apkcompras"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvFmI-EzewecBXm7t--BKTis19h5s9JT4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
