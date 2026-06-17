@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../providers/pantry_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/shopping_provider.dart';
+import '../../services/activity_service.dart';
+import '../supermarkets/barcode_scanner_screen.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../services/firebase_service.dart';
 
@@ -93,10 +96,24 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Pulsa para copiar',
+                    'Pulsa para copiar · o escanea el QR',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey,
                         ),
+                  ),
+                  const SizedBox(height: 16),
+                  QrImageView(
+                    data: code,
+                    version: QrVersions.auto,
+                    size: 160,
+                    eyeStyle: QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    dataModuleStyle: QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   FilledButton.icon(
@@ -288,19 +305,35 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
                         ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: _codeController,
-                    decoration: InputDecoration(
-                      labelText: 'Código de 6 caracteres',
-                      hintText: 'Ej: ABC123',
-                      border: const OutlineInputBorder(),
-                      errorText: _error,
-                    ),
-                    maxLength: 6,
-                    textCapitalization: TextCapitalization.characters,
-                    onChanged: (_) {
-                      if (_error != null) setState(() => _error = null);
-                    },
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _codeController,
+                          decoration: InputDecoration(
+                            labelText: 'Código de 6 caracteres',
+                            hintText: 'Ej: ABC123',
+                            border: const OutlineInputBorder(),
+                            errorText: _error,
+                          ),
+                          maxLength: 6,
+                          textCapitalization: TextCapitalization.characters,
+                          onChanged: (_) {
+                            if (_error != null) setState(() => _error = null);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: IconButton.filled(
+                          icon: const Icon(Icons.qr_code_scanner),
+                          tooltip: 'Escanear QR',
+                          onPressed: _scanQr,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -344,6 +377,22 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
     if (diff.inHours < 24) return 'hace ${diff.inHours} h';
     if (diff.inDays < 7) return 'hace ${diff.inDays} días';
     return DateFormat('d MMM', 'es_ES').format(dt);
+  }
+
+  Future<void> _scanQr() async {
+    final scanned = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
+    if (scanned == null || !mounted) return;
+    // Accept raw 6-char codes
+    final code = scanned.trim().toUpperCase();
+    if (code.length >= 6) {
+      setState(() {
+        _codeController.text = code.substring(0, 6);
+        _error = null;
+      });
+    }
   }
 
   Future<void> _editName() async {
@@ -409,6 +458,8 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
         _reloadProviders();
         setState(() => _membersLoading = true);
         _loadMembers();
+        ActivityService().log('joined_house',
+            FirebaseService().displayName ?? 'Nuevo miembro');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Te has unido a la casa correctamente')),
         );

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../models/pantry_item.dart';
+import '../services/activity_service.dart';
 import '../services/firebase_service.dart';
 import '../utils/notification_helper.dart';
 
@@ -52,6 +53,7 @@ class PantryProvider extends ChangeNotifier {
       name: item.name,
       quantity: item.quantity,
       unit: item.unit,
+      category: item.category,
       expiryDate: item.expiryDate,
       imagePath: item.imagePath,
       notes: item.notes,
@@ -62,6 +64,7 @@ class PantryProvider extends ChangeNotifier {
     );
     final map = toAdd.toMap()..remove('id');
     await FirebaseService().collection('pantry_items').doc(toAdd.id).set(map);
+    ActivityService().log('added_pantry', item.name);
     // Stream will update _items automatically
   }
 
@@ -72,7 +75,9 @@ class PantryProvider extends ChangeNotifier {
   }
 
   Future<void> delete(String id) async {
+    final name = _items.firstWhere((i) => i.id == id, orElse: () => _items.first).name;
     await FirebaseService().collection('pantry_items').doc(id).delete();
+    ActivityService().log('deleted_pantry', name);
     // Stream will update _items automatically
   }
 

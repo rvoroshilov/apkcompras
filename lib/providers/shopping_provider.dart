@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../models/pantry_item.dart';
 import '../models/shopping_list.dart';
 import '../models/shopping_list_item.dart';
+import '../services/activity_service.dart';
 import '../services/firebase_service.dart';
 
 class ShoppingProvider extends ChangeNotifier {
@@ -234,9 +235,11 @@ class ShoppingProvider extends ChangeNotifier {
   Future<void> completeList(String id) async {
     final idx = _lists.indexWhere((l) => l.id == id);
     if (idx < 0) return;
-    final updated = _lists[idx].copyWith(completedAt: DateTime.now());
+    final list = _lists[idx];
+    final updated = list.copyWith(completedAt: DateTime.now());
     final map = updated.toMap()..remove('id');
     await FirebaseService().collection('shopping_lists').doc(id).update(map);
+    ActivityService().log('completed_list', list.name);
     // monthlySpend is computed from in-memory state
   }
 
@@ -266,6 +269,7 @@ class ShoppingProvider extends ChangeNotifier {
         .collection('shopping_list_items')
         .doc(toAdd.id)
         .set(map);
+    ActivityService().log('added_item', item.productName);
     // Stream updates _items if subscribed
     if (_itemSubs.containsKey(item.listId)) {
       // Stream will fire automatically

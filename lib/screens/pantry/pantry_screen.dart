@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/pantry_item.dart';
 import '../../providers/pantry_provider.dart';
+import '../../utils/constants.dart';
 import '../../widgets/pantry_item_card.dart';
 import 'pantry_item_form.dart';
 
@@ -15,6 +16,7 @@ class PantryScreen extends StatefulWidget {
 class _PantryScreenState extends State<PantryScreen> {
   String _query = '';
   String _filter = 'all';
+  String _category = 'all';
   String _sort = 'expiry';
   final _searchCtrl = TextEditingController();
 
@@ -64,10 +66,15 @@ class _PantryScreenState extends State<PantryScreen> {
     return list;
   }
 
+  List<PantryItem> _applyCategory(List<PantryItem> items) {
+    if (_category == 'all') return items;
+    return items.where((i) => i.category == _category).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PantryProvider>();
-    final items = _applySort(provider.filter(_query, _filter));
+    final items = _applySort(_applyCategory(provider.filter(_query, _filter)));
 
     return Scaffold(
       appBar: AppBar(
@@ -88,7 +95,7 @@ class _PantryScreenState extends State<PantryScreen> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(112),
+          preferredSize: const Size.fromHeight(156),
           child: Column(
             children: [
               Padding(
@@ -111,10 +118,11 @@ class _PantryScreenState extends State<PantryScreen> {
                   onChanged: (v) => setState(() => _query = v),
                 ),
               ),
+              // Estado filter
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                 child: Row(
                   children: _filters.map((f) {
                     return Padding(
@@ -127,6 +135,33 @@ class _PantryScreenState extends State<PantryScreen> {
                       ),
                     );
                   }).toList(),
+                ),
+              ),
+              // Category filter
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding:
+                    const EdgeInsets.fromLTRB(16, 2, 16, 6),
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: const Text('Todas'),
+                        selected: _category == 'all',
+                        onSelected: (_) => setState(() => _category = 'all'),
+                      ),
+                    ),
+                    ...AppConstants.categories.map((cat) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(cat),
+                            selected: _category == cat,
+                            onSelected: (v) => setState(
+                                () => _category = v ? cat : 'all'),
+                          ),
+                        )),
+                  ],
                 ),
               ),
             ],

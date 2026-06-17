@@ -3,6 +3,7 @@ class PantryItem {
   final String name;
   final double quantity;
   final String unit;
+  final String category;
   final DateTime? expiryDate;
   final String imagePath;
   final String notes;
@@ -16,6 +17,7 @@ class PantryItem {
     required this.name,
     required this.quantity,
     this.unit = 'ud',
+    this.category = 'General',
     this.expiryDate,
     this.imagePath = '',
     this.notes = '',
@@ -49,6 +51,7 @@ class PantryItem {
         'name': name,
         'quantity': quantity,
         'unit': unit,
+        'category': category,
         'expiry_date': expiryDate?.toIso8601String(),
         'image_path': imagePath,
         'notes': notes,
@@ -63,6 +66,7 @@ class PantryItem {
         name: map['name'] as String,
         quantity: (map['quantity'] as num).toDouble(),
         unit: (map['unit'] as String?) ?? 'ud',
+        category: (map['category'] as String?) ?? 'General',
         expiryDate: map['expiry_date'] != null
             ? DateTime.parse(map['expiry_date'] as String)
             : null,
@@ -78,6 +82,7 @@ class PantryItem {
     String? name,
     double? quantity,
     String? unit,
+    String? category,
     DateTime? expiryDate,
     bool clearExpiryDate = false,
     String? imagePath,
@@ -89,6 +94,7 @@ class PantryItem {
         name: name ?? this.name,
         quantity: quantity ?? this.quantity,
         unit: unit ?? this.unit,
+        category: category ?? this.category,
         expiryDate: clearExpiryDate ? null : (expiryDate ?? this.expiryDate),
         imagePath: imagePath ?? this.imagePath,
         notes: notes ?? this.notes,

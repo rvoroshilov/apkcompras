@@ -25,6 +25,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
   late TextEditingController _notesCtrl;
   late TextEditingController _minStockCtrl;
   String _unit = 'ud';
+  String _category = 'General';
   DateTime? _expiryDate;
   String _imagePath = '';
   bool _saving = false;
@@ -42,6 +43,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
     _minStockCtrl = TextEditingController(
         text: (e?.minStock ?? 0) > 0 ? e!.minStock.toString() : '');
     _unit = e?.unit ?? 'ud';
+    _category = e?.category ?? 'General';
     _expiryDate = e?.expiryDate;
     _imagePath = e?.imagePath ?? '';
   }
@@ -94,6 +96,21 @@ class _PantryItemFormState extends State<PantryItemForm> {
               textCapitalization: TextCapitalization.sentences,
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Introduce un nombre' : null,
+            ),
+            const SizedBox(height: 12),
+
+            // Categoría
+            DropdownButtonFormField<String>(
+              value: _category,
+              decoration: const InputDecoration(
+                labelText: 'Categoría',
+                prefixIcon: Icon(Icons.category_outlined),
+                border: OutlineInputBorder(),
+              ),
+              items: AppConstants.categories
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
+              onChanged: (v) => setState(() => _category = v!),
             ),
             const SizedBox(height: 12),
 
@@ -326,6 +343,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
         name: _nameCtrl.text.trim(),
         quantity: qty,
         unit: _unit,
+        category: _category,
         expiryDate: _expiryDate,
         clearExpiryDate: _expiryDate == null,
         imagePath: _imagePath,
@@ -339,6 +357,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
         name: _nameCtrl.text.trim(),
         quantity: qty,
         unit: _unit,
+        category: _category,
         expiryDate: _expiryDate,
         imagePath: _imagePath,
         notes: _notesCtrl.text.trim(),
