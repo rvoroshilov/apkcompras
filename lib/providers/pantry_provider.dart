@@ -75,9 +75,10 @@ class PantryProvider extends ChangeNotifier {
   }
 
   Future<void> delete(String id) async {
-    final name = _items.firstWhere((i) => i.id == id, orElse: () => _items.first).name;
+    final match = _items.where((i) => i.id == id);
+    final name = match.isNotEmpty ? match.first.name : '';
     await FirebaseService().collection('pantry_items').doc(id).delete();
-    ActivityService().log('deleted_pantry', name);
+    if (name.isNotEmpty) ActivityService().log('deleted_pantry', name);
     // Stream will update _items automatically
   }
 
