@@ -188,6 +188,181 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
+          // Personalisation section
+          _SectionTitle('Personalización'),
+          Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Avatar emoji picker
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Avatar de la casa',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: AppConstants.avatarEmojis.map((emoji) {
+                          final selected = settings.avatarEmoji == emoji;
+                          final cs = Theme.of(context).colorScheme;
+                          return GestureDetector(
+                            onTap: () =>
+                                context.read<SettingsProvider>().setAvatarEmoji(emoji),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? cs.primaryContainer
+                                    : cs.surfaceContainerHighest,
+                                shape: BoxShape.circle,
+                                border: selected
+                                    ? Border.all(color: cs.primary, width: 2.5)
+                                    : null,
+                                boxShadow: selected
+                                    ? [
+                                        BoxShadow(
+                                          color: cs.primary.withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(emoji,
+                                    style: const TextStyle(fontSize: 20)),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                // Background style picker
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Fondo de cabecera',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: List.generate(
+                          AppConstants.backgroundStyles.length,
+                          (i) {
+                            final style = AppConstants.backgroundStyles[i];
+                            final selected = settings.backgroundStyle == i;
+                            final cs = Theme.of(context).colorScheme;
+                            final List<Color> previewColors = switch (i) {
+                              0 => [cs.primary, cs.primary],
+                              2 => [
+                                  cs.primary,
+                                  Color.lerp(cs.primary, cs.tertiary, 0.65)!,
+                                ],
+                              _ => [
+                                  cs.primary,
+                                  Color.lerp(
+                                      cs.primary, cs.primaryContainer, 0.55)!,
+                                ],
+                            };
+                            return Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(right: i < 2 ? 8 : 0),
+                                child: GestureDetector(
+                                  onTap: () => context
+                                      .read<SettingsProvider>()
+                                      .setBackgroundStyle(i),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12, horizontal: 6),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: previewColors,
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: selected
+                                            ? cs.onPrimary
+                                            : Colors.transparent,
+                                        width: 2.5,
+                                      ),
+                                      boxShadow: selected
+                                          ? [
+                                              BoxShadow(
+                                                color: cs.primary
+                                                    .withOpacity(0.4),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 3),
+                                              )
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        if (selected)
+                                          Icon(Icons.check_circle,
+                                              color: cs.onPrimary, size: 18)
+                                        else
+                                          Icon(Icons.circle_outlined,
+                                              color:
+                                                  cs.onPrimary.withOpacity(0.6),
+                                              size: 18),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          style.name,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: cs.onPrimary,
+                                          ),
+                                        ),
+                                        Text(
+                                          style.description,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color:
+                                                cs.onPrimary.withOpacity(0.75),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Backup section
           _SectionTitle('Copia de seguridad'),
           Card(

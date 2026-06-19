@@ -55,6 +55,19 @@ class AppConstants {
     _                      => const Color(0xFF9E9E9E),
   };
 
+  static const List<String> avatarEmojis = [
+    '🏠', '🌿', '🌸', '🌟', '🦋', '🍀',
+    '🌈', '🎨', '🧁', '🍕', '🎵', '🌙',
+    '🦊', '🐱', '🐶', '🌺', '🍓', '🎯',
+    '🦄', '🌊', '🍉', '🎪',
+  ];
+
+  static const List<({String name, String description})> backgroundStyles = [
+    (name: 'Plano',     description: 'Sin degradado'),
+    (name: 'Suave',     description: 'Toque de color'),
+    (name: 'Degradado', description: 'Vibrante'),
+  ];
+
   static const List<Color> supermarketColors = [
     Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFFC62828),
     Color(0xFF6A1B9A), Color(0xFFE65100), Color(0xFF00695C),
