@@ -38,23 +38,76 @@ class App extends StatelessWidget {
     );
   }
 
-  static ThemeData _buildTheme(Color seed, Brightness brightness) =>
-      ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: brightness),
-        useMaterial3: true,
-        cardTheme: const CardTheme(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-          ),
+  static ThemeData _buildTheme(Color seed, Brightness brightness) {
+    final cs = ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
+    return ThemeData(
+      colorScheme: cs,
+      useMaterial3: true,
+      scaffoldBackgroundColor: cs.surface,
+      appBarTheme: AppBarTheme(
+        centerTitle: true,
+        scrolledUnderElevation: 0.5,
+        backgroundColor: cs.surface,
+        foregroundColor: cs.onSurface,
+        titleTextStyle: TextStyle(
+          color: cs.onSurface,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
+      ),
+      cardTheme: CardTheme(
+        elevation: 0,
+        color: cs.surfaceContainerLow,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
-        chipTheme: const ChipThemeData(
-          shape: StadiumBorder(),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-      );
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(18)),
+        ),
+      ),
+      chipTheme: const ChipThemeData(shape: StadiumBorder()),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: cs.surfaceContainerHighest.withOpacity(0.4),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: cs.primary, width: 1.5),
+        ),
+      ),
+      dialogTheme: DialogTheme(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
 }

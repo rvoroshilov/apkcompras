@@ -34,7 +34,8 @@ class SettingsScreen extends StatelessWidget {
           _SectionTitle('Casa compartida'),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.home_outlined),
+              leading: const _MenuIcon(
+                  icon: Icons.home_outlined, color: Color(0xFF7B1FA2)),
               title: const Text('Casa compartida'),
               subtitle: Text('Código: $houseCode'),
               trailing: const Icon(Icons.chevron_right),
@@ -52,7 +53,8 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.savings_outlined),
+                  leading: const _MenuIcon(
+                      icon: Icons.savings_outlined, color: Color(0xFF2E7D32)),
                   title: const Text('Presupuesto global'),
                   subtitle: Text(
                     shopping.monthlyBudget > 0
@@ -64,7 +66,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.bar_chart_outlined),
+                  leading: const _MenuIcon(
+                      icon: Icons.bar_chart_outlined, color: Color(0xFF0288D1)),
                   title: const Text('Panel de gastos'),
                   subtitle: const Text('Gráficos de gasto mensual y por tienda'),
                   trailing: const Icon(Icons.chevron_right),
@@ -112,7 +115,9 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(_themeIcon(settings.themeMode)),
+                  leading: _MenuIcon(
+                      icon: _themeIcon(settings.themeMode),
+                      color: const Color(0xFF5E35B1)),
                   title: const Text('Modo'),
                   subtitle: Text(_themeLabel(settings.themeMode)),
                   trailing: const Icon(Icons.chevron_right),
@@ -189,7 +194,8 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.upload_outlined),
+                  leading: const _MenuIcon(
+                      icon: Icons.upload_outlined, color: Color(0xFF00897B)),
                   title: const Text('Exportar datos (.zip)'),
                   subtitle: const Text(
                       'Empaqueta tus datos y fotos para transferirlos a otro móvil'),
@@ -198,7 +204,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.download_outlined),
+                  leading: const _MenuIcon(
+                      icon: Icons.download_outlined, color: Color(0xFF43A047)),
                   title: const Text('Importar datos'),
                   subtitle: const Text(
                       'Restaura una copia (.zip) de MiCompra desde este dispositivo'),
@@ -214,7 +221,8 @@ class SettingsScreen extends StatelessWidget {
           _SectionTitle('Notificaciones'),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.notifications_outlined),
+              leading: const _MenuIcon(
+                  icon: Icons.notifications_outlined, color: Color(0xFFE64A19)),
               title: const Text('Activar notificaciones'),
               subtitle:
                   const Text('Permite recibir alertas de caducidad'),
@@ -230,14 +238,16 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               children: [
                 const ListTile(
-                  leading: Icon(Icons.info_outline),
+                  leading: _MenuIcon(
+                      icon: Icons.info_outline, color: Color(0xFF546E7A)),
                   title: Text('MiCompra'),
                   subtitle: Text(
                       'v1.0.0 — Gestiona tu despensa y lista de la compra'),
                 ),
                 const Divider(height: 1),
                 const ListTile(
-                  leading: Icon(Icons.cloud_outlined),
+                  leading: _MenuIcon(
+                      icon: Icons.cloud_outlined, color: Color(0xFF1E88E5)),
                   title: Text('Almacenamiento'),
                   subtitle:
                       Text('Firebase Firestore · Sincronización en tiempo real'),
@@ -401,6 +411,25 @@ class SettingsScreen extends StatelessWidget {
                 'No se pudo importar. ¿El archivo es una copia de MiCompra?')),
       );
     }
+  }
+}
+
+class _MenuIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  const _MenuIcon({required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: color, size: 22),
+    );
   }
 }
 

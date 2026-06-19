@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import '../widgets/aesthetic_nav_bar.dart';
 import 'activity/activity_screen.dart';
 import 'home/home_screen.dart';
 import 'pantry/pantry_screen.dart';
@@ -24,6 +25,29 @@ class _MainScreenState extends State<MainScreen> {
     ActivityScreen(),
   ];
 
+  static const _navItems = [
+    AestheticNavItem(
+        icon: Icons.dashboard_outlined,
+        selectedIcon: Icons.dashboard,
+        label: 'Inicio'),
+    AestheticNavItem(
+        icon: Icons.kitchen_outlined,
+        selectedIcon: Icons.kitchen,
+        label: 'Despensa'),
+    AestheticNavItem(
+        icon: Icons.store_outlined,
+        selectedIcon: Icons.store,
+        label: 'Tiendas'),
+    AestheticNavItem(
+        icon: Icons.shopping_cart_outlined,
+        selectedIcon: Icons.shopping_cart,
+        label: 'Compra'),
+    AestheticNavItem(
+        icon: Icons.favorite_outline,
+        selectedIcon: Icons.favorite,
+        label: 'Actividad'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<ConnectivityResult>>(
@@ -43,9 +67,11 @@ class _MainScreenState extends State<MainScreen> {
                     children: [
                       Icon(Icons.wifi_off, size: 18, color: Colors.white),
                       SizedBox(width: 8),
-                      Text(
-                        'Sin conexión — los cambios se sincronizarán al volver',
-                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      Expanded(
+                        child: Text(
+                          'Sin conexión — los cambios se sincronizarán al volver',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        ),
                       ),
                     ],
                   ),
@@ -60,36 +86,10 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: NavigationBar(
+          bottomNavigationBar: AestheticNavBar(
             selectedIndex: _selectedIndex,
-            onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: 'Inicio',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.kitchen_outlined),
-                selectedIcon: Icon(Icons.kitchen),
-                label: 'Despensa',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.store_outlined),
-                selectedIcon: Icon(Icons.store),
-                label: 'Tiendas',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.shopping_cart_outlined),
-                selectedIcon: Icon(Icons.shopping_cart),
-                label: 'Compra',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.history_outlined),
-                selectedIcon: Icon(Icons.history),
-                label: 'Actividad',
-              ),
-            ],
+            onItemSelected: (i) => setState(() => _selectedIndex = i),
+            items: _navItems,
           ),
         );
       },
