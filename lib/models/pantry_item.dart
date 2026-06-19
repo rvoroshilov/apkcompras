@@ -38,6 +38,7 @@ class PantryItem {
     return expiryDate!.difference(DateTime.now()).inDays <= 3;
   }
 
+  bool get isOutOfStock => quantity <= 0;
   bool get isBelowMinStock => minStock > 0 && quantity < minStock;
 
   int? get daysUntilExpiry {

@@ -100,6 +100,8 @@ class PantryProvider extends ChangeNotifier {
         return result.where((i) => !i.isExpired && !i.isExpiringSoon).toList();
       case 'low_stock':
         return result.where((i) => i.isBelowMinStock).toList();
+      case 'empty':
+        return result.where((i) => i.isOutOfStock).toList();
       default:
         return result;
     }

@@ -25,6 +25,7 @@ class _PantryScreenState extends State<PantryScreen> {
 
   final _filters = const [
     ('all',       'Todos'),
+    ('empty',     'Sin stock'),
     ('expiring',  'Caducan pronto'),
     ('expired',   'Caducados'),
     ('ok',        'Bien'),
@@ -422,7 +423,9 @@ class _CompactItem extends StatelessWidget {
         ? Colors.red
         : item.isExpiringSoon
             ? Colors.orange
-            : color;
+            : item.isOutOfStock
+                ? Colors.red[300]!
+                : color;
     final fmt = DateFormat('dd/MM/yy');
 
     return InkWell(
@@ -436,7 +439,9 @@ class _CompactItem extends StatelessWidget {
                   ? Icons.error_outline
                   : item.isExpiringSoon
                       ? Icons.warning_amber_outlined
-                      : Icons.check_circle_outline,
+                      : item.isOutOfStock
+                          ? Icons.remove_shopping_cart_outlined
+                          : Icons.check_circle_outline,
               color: statusColor,
               size: 18,
             ),
@@ -497,9 +502,11 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final msg = filter == 'all'
         ? 'Tu despensa está vacía.\nAñade productos con el botón +.'
-        : filter == 'low_stock'
-            ? '¡Todo en orden!\nNingún producto por debajo del stock mínimo.'
-            : 'No hay productos en esta categoría.';
+        : filter == 'empty'
+            ? '¡Nada agotado!\nTodos tus productos tienen stock.'
+            : filter == 'low_stock'
+                ? '¡Todo en orden!\nNingún producto por debajo del stock mínimo.'
+                : 'No hay productos en esta categoría.';
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

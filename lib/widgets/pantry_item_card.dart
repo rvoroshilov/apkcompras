@@ -24,7 +24,9 @@ class PantryItemCard extends StatelessWidget {
         ? Colors.red
         : item.isExpiringSoon
             ? Colors.orange
-            : Colors.green;
+            : item.isOutOfStock
+                ? Colors.red[300]!
+                : Colors.green;
     final catColor = AppConstants.categoryColor(item.category);
 
     return Card(
@@ -72,7 +74,25 @@ class PantryItemCard extends StatelessWidget {
                           style: theme.textTheme.bodySmall
                               ?.copyWith(color: Colors.grey[600]),
                         ),
-                        if (item.isBelowMinStock) ...[
+                        if (item.isOutOfStock) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.red[300],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'AGOTADO',
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ] else if (item.isBelowMinStock) ...[
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
