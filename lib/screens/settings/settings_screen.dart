@@ -549,10 +549,20 @@ class SettingsScreen extends StatelessWidget {
               leading: const _MenuIcon(
                   icon: Icons.notifications_outlined, color: Color(0xFFE64A19)),
               title: const Text('Activar notificaciones'),
-              subtitle:
-                  const Text('Permite recibir alertas de caducidad'),
+              subtitle: const Text(
+                  'Avisos 2 días antes de que un producto caduque'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => NotificationHelper.requestPermission(),
+              onTap: () async {
+                await NotificationHelper.requestPermission();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Listo. Te avisaremos antes de que caduquen tus productos.'),
+                    ),
+                  );
+                }
+              },
             ),
           ),
           const SizedBox(height: 16),

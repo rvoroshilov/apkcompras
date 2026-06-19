@@ -40,6 +40,8 @@ class PantryProvider extends ChangeNotifier {
       if (_items.any((i) => i.isExpired || i.isExpiringSoon)) {
         NotificationHelper.checkExpiringItems(_items);
       }
+      // Reprograma los avisos de caducidad (cubre reinicios y cambios remotos).
+      NotificationHelper.rescheduleExpiryNotifications(_items);
     }, onError: (e) {
       debugPrint('PantryProvider stream error: $e');
       _loading = false;
@@ -79,6 +81,7 @@ class PantryProvider extends ChangeNotifier {
     final name = match.isNotEmpty ? match.first.name : '';
     await FirebaseService().collection('pantry_items').doc(id).delete();
     if (name.isNotEmpty) ActivityService().log('deleted_pantry', name);
+    NotificationHelper.cancelForItem(id);
     // Stream will update _items automatically
   }
 
