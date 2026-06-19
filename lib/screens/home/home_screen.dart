@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +10,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../services/firebase_service.dart';
+import '../../utils/backup_helper.dart';
 import '../settings/settings_screen.dart';
 import '../spending/spending_screen.dart';
 
@@ -42,6 +45,7 @@ class HomeScreen extends StatelessWidget {
               greeting: greeting,
               avatarEmoji: settings.avatarEmoji,
               backgroundStyle: settings.backgroundStyle,
+              backgroundImage: settings.backgroundImage,
               onSettings: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -256,12 +260,14 @@ class _HeroHeader extends StatelessWidget {
   final String greeting;
   final String avatarEmoji;
   final int backgroundStyle;
+  final String backgroundImage;
   final VoidCallback onSettings;
 
   const _HeroHeader({
     required this.greeting,
     required this.avatarEmoji,
     required this.backgroundStyle,
+    required this.backgroundImage,
     required this.onSettings,
   });
 
@@ -275,6 +281,9 @@ class _HeroHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final colors = _gradientColors(cs);
+    final hasImage = backgroundImage.isNotEmpty;
+    final imageFile =
+        hasImage ? File(BackupHelper.resolveImagePath(backgroundImage)) : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -283,10 +292,39 @@ class _HeroHeader extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: colors,
         ),
+        image: imageFile != null
+            ? DecorationImage(
+                image: FileImage(imageFile),
+                fit: BoxFit.cover,
+                onError: (_, __) {},
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withOpacity(0.30),
+                  BlendMode.darken,
+                ),
+              )
+            : null,
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Stack(
+      child: Stack(
+        children: [
+          // Degradado oscuro sobre la imagen para que el texto sea legible
+          if (hasImage)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.10),
+                      Colors.black.withOpacity(0.45),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          SafeArea(
+            bottom: false,
+            child: Stack(
           children: [
             // Decorative background blobs
             Positioned(
@@ -389,6 +427,8 @@ class _HeroHeader extends StatelessWidget {
             ),
           ],
         ),
+          ),
+        ],
       ),
     );
   }

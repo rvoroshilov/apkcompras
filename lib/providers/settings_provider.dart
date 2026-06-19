@@ -6,11 +6,14 @@ class SettingsProvider extends ChangeNotifier {
   int _seedColor = 0xFF2E7D32;
   int _backgroundStyle = 1;
   String _avatarEmoji = '🏠';
+  String _backgroundImage = '';
 
   ThemeMode get themeMode => _themeMode;
   int get seedColor => _seedColor;
   int get backgroundStyle => _backgroundStyle;
   String get avatarEmoji => _avatarEmoji;
+  String get backgroundImage => _backgroundImage;
+  bool get hasBackgroundImage => _backgroundImage.isNotEmpty;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -22,6 +25,7 @@ class SettingsProvider extends ChangeNotifier {
     _seedColor = prefs.getInt('seed_color') ?? 0xFF2E7D32;
     _backgroundStyle = prefs.getInt('bg_style') ?? 1;
     _avatarEmoji = prefs.getString('avatar_emoji') ?? '🏠';
+    _backgroundImage = prefs.getString('bg_image') ?? '';
     notifyListeners();
   }
 
@@ -54,6 +58,15 @@ class SettingsProvider extends ChangeNotifier {
     _avatarEmoji = emoji;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('avatar_emoji', emoji);
+    notifyListeners();
+  }
+
+  /// [filename] es el nombre devuelto por BackupHelper.saveImage, o ''
+  /// para quitar el fondo personalizado.
+  Future<void> setBackgroundImage(String filename) async {
+    _backgroundImage = filename;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('bg_image', filename);
     notifyListeners();
   }
 }

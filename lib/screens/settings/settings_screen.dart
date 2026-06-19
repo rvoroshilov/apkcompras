@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/pantry_provider.dart';
@@ -358,6 +361,122 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                const Divider(height: 1),
+                // Custom background photo
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Foto de fondo',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          if (settings.hasBackgroundImage)
+                            TextButton.icon(
+                              onPressed: () => context
+                                  .read<SettingsProvider>()
+                                  .setBackgroundImage(''),
+                              icon: const Icon(Icons.delete_outline, size: 18),
+                              label: const Text('Quitar'),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => _pickBackgroundImage(context),
+                        child: Container(
+                          height: 120,
+                          width: double.infinity,
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant,
+                            ),
+                            image: settings.hasBackgroundImage
+                                ? DecorationImage(
+                                    image: FileImage(File(
+                                        BackupHelper.resolveImagePath(
+                                            settings.backgroundImage))),
+                                    fit: BoxFit.cover,
+                                    onError: (_, __) {},
+                                  )
+                                : null,
+                          ),
+                          child: settings.hasBackgroundImage
+                              ? Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: Container(
+                                    margin: const EdgeInsets.all(8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.55),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.edit,
+                                            size: 14, color: Colors.white),
+                                        SizedBox(width: 4),
+                                        Text('Cambiar',
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_photo_alternate_outlined,
+                                        size: 34,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Elegir foto de la galería',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Aparece en la cabecera de Inicio con un degradado encima.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -585,6 +704,27 @@ class SettingsScreen extends StatelessWidget {
             content: Text(
                 'No se pudo importar. ¿El archivo es una copia de MiCompra?')),
       );
+    }
+  }
+
+  Future<void> _pickBackgroundImage(BuildContext context) async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1200,
+      );
+      if (picked == null || !context.mounted) return;
+
+      final savedPath = await BackupHelper.saveImage(picked.path);
+      if (!context.mounted) return;
+      await context.read<SettingsProvider>().setBackgroundImage(savedPath);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo cargar la imagen: $e')),
+        );
+      }
     }
   }
 }
