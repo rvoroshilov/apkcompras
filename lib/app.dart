@@ -7,6 +7,8 @@ import 'providers/shopping_provider.dart';
 import 'providers/settings_provider.dart';
 import 'screens/main_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/access_gate_screen.dart';
+import 'services/device_service.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -30,7 +32,7 @@ class App extends StatelessWidget {
             themeMode: settings.themeMode,
             theme: _buildTheme(seed, Brightness.light),
             darkTheme: _buildTheme(seed, Brightness.dark),
-            home: const MainScreen(),
+            home: const _DeviceGate(),
             routes: {'/settings': (_) => const SettingsScreen()},
           );
         },
@@ -108,6 +110,22 @@ class App extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
+    );
+  }
+}
+
+class _DeviceGate extends StatelessWidget {
+  const _DeviceGate();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DeviceStatus>(
+      stream: DeviceService().statusStream(),
+      builder: (context, snap) {
+        final status = snap.data ?? DeviceStatus.pending;
+        if (status == DeviceStatus.approved) return const MainScreen();
+        return AccessGateScreen(status: status);
+      },
     );
   }
 }
