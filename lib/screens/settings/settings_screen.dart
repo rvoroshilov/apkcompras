@@ -9,6 +9,7 @@ import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../services/firebase_service.dart';
 import '../../utils/backup_helper.dart';
+import '../../utils/constants.dart';
 import '../../utils/notification_helper.dart';
 import '../spending/spending_screen.dart';
 import 'house_settings_screen.dart';
@@ -108,12 +109,76 @@ class SettingsScreen extends StatelessWidget {
           // Appearance section
           _SectionTitle('Apariencia'),
           Card(
-            child: ListTile(
-              leading: Icon(_themeIcon(settings.themeMode)),
-              title: const Text('Tema'),
-              subtitle: Text(_themeLabel(settings.themeMode)),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _selectTheme(context, settings),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(_themeIcon(settings.themeMode)),
+                  title: const Text('Modo'),
+                  subtitle: Text(_themeLabel(settings.themeMode)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _selectTheme(context, settings),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Color de la app',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: AppConstants.colorThemes.map((t) {
+                          final selected = settings.seedColor == t.color.value;
+                          return GestureDetector(
+                            onTap: () => settings.setSeedColor(t.color.value),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: t.color,
+                                    shape: BoxShape.circle,
+                                    border: selected
+                                        ? Border.all(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                            width: 3)
+                                        : null,
+                                    boxShadow: selected
+                                        ? [BoxShadow(
+                                            color: t.color.withOpacity(0.5),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3))]
+                                        : null,
+                                  ),
+                                  child: selected
+                                      ? const Icon(Icons.check,
+                                          color: Colors.white, size: 20)
+                                      : Center(
+                                          child: Text(t.emoji,
+                                              style: const TextStyle(
+                                                  fontSize: 18))),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(t.name,
+                                    style: const TextStyle(fontSize: 10)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),

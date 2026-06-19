@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/pantry_item.dart';
 import '../utils/backup_helper.dart';
+import '../utils/constants.dart';
 
 class PantryItemCard extends StatelessWidget {
   final PantryItem item;
@@ -24,17 +25,18 @@ class PantryItemCard extends StatelessWidget {
         : item.isExpiringSoon
             ? Colors.orange
             : Colors.green;
+    final catColor = AppConstants.categoryColor(item.category);
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              _buildImage(statusColor),
+              _buildImage(statusColor, catColor),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -43,13 +45,30 @@ class PantryItemCard extends StatelessWidget {
                     Text(
                       item.name,
                       style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: catColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            item.category,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: catColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
                         Text(
-                          '${_formatQuantity(item.quantity)} ${item.unit}',
+                          '${_fmtQty(item.quantity)} ${item.unit}',
                           style: theme.textTheme.bodySmall
                               ?.copyWith(color: Colors.grey[600]),
                         ),
@@ -62,9 +81,9 @@ class PantryItemCard extends StatelessWidget {
                               color: Colors.blue,
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(
+                            child: const Text(
                               'STOCK BAJO',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 8,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -75,12 +94,15 @@ class PantryItemCard extends StatelessWidget {
                       ],
                     ),
                     if (item.notes.isNotEmpty)
-                      Text(
-                        item.notes,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: Colors.grey[500], fontSize: 11),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          item.notes,
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey[500], fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                 ),
@@ -107,9 +129,8 @@ class PantryItemCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      DateFormat('dd/MM/yyyy').format(item.expiryDate!),
-                      style:
-                          theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                      DateFormat('dd/MM/yy').format(item.expiryDate!),
+                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                     ),
                   ],
                   if (onDelete != null)
@@ -138,35 +159,39 @@ class PantryItemCard extends StatelessWidget {
     return 'En $days días';
   }
 
-  String _formatQuantity(double q) =>
+  static String _fmtQty(double q) =>
       q == q.truncateToDouble() ? q.toInt().toString() : q.toStringAsFixed(1);
 
-  Widget _buildImage(Color statusColor) {
+  Widget _buildImage(Color statusColor, Color catColor) {
     if (item.imagePath.isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Image.file(
           File(BackupHelper.resolveImagePath(item.imagePath)),
           width: 56,
           height: 56,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(statusColor),
+          errorBuilder: (_, __, ___) => _placeholder(catColor),
         ),
       );
     }
-    return _placeholder(statusColor);
+    return _placeholder(catColor);
   }
 
-  Widget _placeholder(Color color) => Container(
+  Widget _placeholder(Color catColor) => Container(
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [catColor.withOpacity(0.15), catColor.withOpacity(0.08)],
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
-          Icons.kitchen_outlined,
-          color: color.withOpacity(0.6),
+          AppConstants.categoryIcon(item.category),
+          color: catColor.withOpacity(0.8),
           size: 28,
         ),
       );
