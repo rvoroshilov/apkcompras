@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/supermarket.dart';
 import '../../providers/supermarket_provider.dart';
+import '../../utils/catalog_share_helper.dart';
 import '../../utils/constants.dart';
 import 'supermarket_products_screen.dart';
 
@@ -47,6 +48,7 @@ class _SupermarketsScreenState extends State<SupermarketsScreen> {
                       onTap: () => _openProducts(s),
                       onEdit: () => _showEditDialog(s),
                       onDelete: () => _confirmDelete(s),
+                      onShare: () => _shareSupermarket(s),
                     );
                   },
                 ),
@@ -108,6 +110,18 @@ class _SupermarketsScreenState extends State<SupermarketsScreen> {
       context.read<SupermarketProvider>().delete(s.id);
     }
   }
+
+  Future<void> _shareSupermarket(Supermarket s) async {
+    try {
+      await CatalogShareHelper.shareSupermarket(s);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo compartir: $e')),
+        );
+      }
+    }
+  }
 }
 
 class _SupermarketCard extends StatelessWidget {
@@ -115,12 +129,14 @@ class _SupermarketCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onShare;
 
   const _SupermarketCard({
     required this.supermarket,
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    required this.onShare,
   });
 
   @override
@@ -179,10 +195,14 @@ class _SupermarketCard extends StatelessWidget {
                   onSelected: (v) {
                     if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
+                    if (v == 'share') onShare();
                   },
                   itemBuilder: (_) => [
                     const PopupMenuItem(
                         value: 'edit', child: Text('Editar')),
+                    const PopupMenuItem(
+                        value: 'share',
+                        child: Text('Compartir catálogo')),
                     const PopupMenuItem(
                         value: 'delete',
                         child: Text('Eliminar',

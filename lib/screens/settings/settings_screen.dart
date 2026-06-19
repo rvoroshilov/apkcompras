@@ -12,6 +12,7 @@ import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../services/firebase_service.dart';
 import '../../utils/backup_helper.dart';
+import '../../utils/catalog_share_helper.dart';
 import '../../utils/constants.dart';
 import '../../utils/notification_helper.dart';
 import '../spending/spending_screen.dart';
@@ -511,6 +512,35 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
+          // Catalog sharing section
+          _SectionTitle('Catálogo de supermercados'),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const _MenuIcon(
+                      icon: Icons.ios_share, color: Color(0xFF7B1FA2)),
+                  title: const Text('Compartir todo el catálogo'),
+                  subtitle: const Text(
+                      'Envía tus supermercados y productos a otra casa'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _shareCatalog(context),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const _MenuIcon(
+                      icon: Icons.playlist_add, color: Color(0xFF00897B)),
+                  title: const Text('Importar catálogo'),
+                  subtitle: const Text(
+                      'Añade supermercados y productos desde un archivo compartido'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _importCatalog(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Notifications section
           _SectionTitle('Notificaciones'),
           Card(
@@ -725,6 +755,83 @@ class SettingsScreen extends StatelessWidget {
           SnackBar(content: Text('No se pudo cargar la imagen: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _shareCatalog(BuildContext context) async {
+    try {
+      await CatalogShareHelper.shareAll();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo compartir: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importCatalog(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Importar catálogo'),
+        content: const Text(
+          'Vas a añadir supermercados y productos desde un archivo compartido '
+          '(.json).\n\nLos súper que ya existan con el mismo nombre se '
+          'fusionarán: se añaden los productos nuevos y se actualizan los '
+          'precios de los repetidos. No se borra nada.\n\n¿Elegir archivo?',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Elegir archivo'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !context.mounted) return;
+
+    final result = await FilePicker.platform.pickFiles(type: FileType.any);
+    if (result == null || result.files.single.path == null) return;
+    final path = result.files.single.path!;
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final res = await CatalogShareHelper.importFromFile(path);
+      if (!context.mounted) return;
+      Navigator.pop(context); // cierra el spinner
+
+      // Refresca los catálogos en memoria.
+      await context.read<SupermarketProvider>().load();
+      context.read<ProductProvider>().clearSearch();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Catálogo importado ✓  ${res.summary}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context); // cierra el spinner
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e is FormatException
+              ? e.message
+              : 'No se pudo importar el catálogo.'),
+        ),
+      );
     }
   }
 }
