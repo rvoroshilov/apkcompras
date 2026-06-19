@@ -43,6 +43,9 @@ class HomeScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: _HeroHeader(
               greeting: greeting,
+              title: FirebaseService().houseName?.isNotEmpty == true
+                  ? FirebaseService().houseName!
+                  : 'MiCompra',
               avatarEmoji: settings.avatarEmoji,
               backgroundStyle: settings.backgroundStyle,
               backgroundImage: settings.backgroundImage,
@@ -258,6 +261,7 @@ class HomeScreen extends StatelessWidget {
 
 class _HeroHeader extends StatelessWidget {
   final String greeting;
+  final String title;
   final String avatarEmoji;
   final int backgroundStyle;
   final String backgroundImage;
@@ -265,6 +269,7 @@ class _HeroHeader extends StatelessWidget {
 
   const _HeroHeader({
     required this.greeting,
+    required this.title,
     required this.avatarEmoji,
     required this.backgroundStyle,
     required this.backgroundImage,
@@ -385,7 +390,9 @@ class _HeroHeader extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'MiCompra',
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: cs.onPrimary,
                             fontSize: 30,

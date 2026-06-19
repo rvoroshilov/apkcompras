@@ -12,6 +12,7 @@ import '../../services/activity_service.dart';
 import '../supermarkets/barcode_scanner_screen.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../services/firebase_service.dart';
+import '../../widgets/gradient_app_bar.dart';
 
 class HouseSettingsScreen extends StatefulWidget {
   const HouseSettingsScreen({super.key});
@@ -54,9 +55,10 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
     final fs = FirebaseService();
     final code = fs.houseCode ?? '------';
     final myName = fs.displayName;
+    final houseName = fs.houseName;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Casa compartida')),
+      appBar: const GradientAppBar(title: Text('Casa compartida')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -125,6 +127,52 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
                     },
                     icon: const Icon(Icons.share),
                     label: const Text('Compartir código'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // House name
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.home_outlined,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('Nombre de la casa',
+                          style: Theme.of(context).textTheme.titleSmall),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          houseName != null && houseName.isNotEmpty
+                              ? houseName
+                              : 'Sin nombre — aparecerá en la pantalla de Inicio',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: houseName != null && houseName.isNotEmpty
+                                    ? null
+                                    : Colors.grey,
+                              ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _editHouseName,
+                        child: Text(
+                            houseName != null && houseName.isNotEmpty
+                                ? 'Cambiar'
+                                : 'Añadir'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -428,6 +476,41 @@ class _HouseSettingsScreenState extends State<HouseSettingsScreen> {
       await fs.setDisplayName(ctrl.text.trim());
       setState(() {});
       _loadMembers();
+    }
+  }
+
+  Future<void> _editHouseName() async {
+    final fs = FirebaseService();
+    final ctrl = TextEditingController(text: fs.houseName ?? '');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nombre de la casa'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Nombre',
+            hintText: 'Ej: Casa de los García',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && ctrl.text.trim().isNotEmpty && mounted) {
+      await fs.setHouseName(ctrl.text.trim());
+      setState(() {});
     }
   }
 

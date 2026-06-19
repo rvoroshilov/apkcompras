@@ -10,15 +10,18 @@ class FirebaseService {
 
   static const _houseKey = 'house_id';
   static const _nameKey = 'user_display_name';
+  static const _houseNameKey = 'house_name';
 
   FirebaseFirestore get db => FirebaseFirestore.instance;
 
   String? _houseId;
   String? _displayName;
+  String? _houseName;
 
   String? get houseId => _houseId;
   String? get houseCode => _houseId?.substring(0, 6).toUpperCase();
   String? get displayName => _displayName;
+  String? get houseName => _houseName;
   String get userId => FirebaseAuth.instance.currentUser!.uid;
 
   CollectionReference<Map<String, dynamic>> collection(String name) =>
@@ -40,6 +43,34 @@ class FirebaseService {
     _displayName = prefs.getString(_nameKey);
     if (_displayName != null) {
       _updateMembership().ignore();
+    }
+    _houseName = prefs.getString(_houseNameKey);
+    _syncHouseName().ignore();
+  }
+
+  /// Refresca el nombre de la casa desde Firestore (lo comparten los miembros).
+  Future<void> _syncHouseName() async {
+    if (_houseId == null) return;
+    try {
+      final snap = await db.collection('households').doc(_houseId!).get();
+      final n = snap.data()?['name'] as String?;
+      if (n != null && n.isNotEmpty) {
+        _houseName = n;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_houseNameKey, n);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setHouseName(String name) async {
+    _houseName = name.trim();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_houseNameKey, _houseName!);
+    if (_houseId != null) {
+      await db
+          .collection('households')
+          .doc(_houseId!)
+          .set({'name': _houseName}, SetOptions(merge: true));
     }
   }
 
