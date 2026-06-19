@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/activity_entry.dart';
 import '../../services/activity_service.dart';
+import '../../widgets/gradient_app_bar.dart';
 
 class ActivityScreen extends StatelessWidget {
   const ActivityScreen({super.key});
@@ -9,7 +10,7 @@ class ActivityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Actividad')),
+      appBar: const GradientAppBar(title: Text('Actividad')),
       body: StreamBuilder<List<ActivityEntry>>(
         stream: ActivityService().stream(),
         builder: (context, snap) {

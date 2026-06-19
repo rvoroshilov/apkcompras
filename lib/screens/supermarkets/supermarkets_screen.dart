@@ -4,6 +4,7 @@ import '../../models/supermarket.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../utils/catalog_share_helper.dart';
 import '../../utils/constants.dart';
+import '../../widgets/gradient_app_bar.dart';
 import 'supermarket_products_screen.dart';
 
 class SupermarketsScreen extends StatefulWidget {
@@ -27,7 +28,7 @@ class _SupermarketsScreenState extends State<SupermarketsScreen> {
     final provider = context.watch<SupermarketProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Supermercados')),
+      appBar: const GradientAppBar(title: Text('Supermercados')),
       body: provider.loading
           ? const Center(child: CircularProgressIndicator())
           : provider.items.isEmpty

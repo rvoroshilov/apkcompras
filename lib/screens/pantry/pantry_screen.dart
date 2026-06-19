@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/pantry_item.dart';
 import '../../providers/pantry_provider.dart';
 import '../../utils/constants.dart';
+import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/pantry_item_card.dart';
 import 'pantry_item_form.dart';
 
@@ -76,7 +77,7 @@ class _PantryScreenState extends State<PantryScreen> {
     final items = _applySort(_applyCategory(provider.filter(_query, _filter)));
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GradientAppBar(
         title: const Text('Despensa'),
         actions: [
           IconButton(
@@ -98,7 +99,9 @@ class _PantryScreenState extends State<PantryScreen> {
         ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(_grouped ? 96 : 148),
-          child: Column(
+          child: Container(
+            color: Theme.of(context).colorScheme.surface,
+            child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -165,6 +168,7 @@ class _PantryScreenState extends State<PantryScreen> {
                   ),
                 ),
             ],
+          ),
           ),
         ),
       ),

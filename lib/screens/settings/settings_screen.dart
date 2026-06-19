@@ -15,6 +15,7 @@ import '../../utils/backup_helper.dart';
 import '../../utils/catalog_share_helper.dart';
 import '../../utils/constants.dart';
 import '../../utils/notification_helper.dart';
+import '../../widgets/gradient_app_bar.dart';
 import '../spending/spending_screen.dart';
 import 'house_settings_screen.dart';
 
@@ -30,7 +31,7 @@ class SettingsScreen extends StatelessWidget {
     final houseCode = FirebaseService().houseCode ?? '------';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ajustes')),
+      appBar: const GradientAppBar(title: Text('Ajustes')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

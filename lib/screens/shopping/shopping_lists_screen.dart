@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/shopping_list.dart';
 import '../../providers/shopping_provider.dart';
+import '../../widgets/gradient_app_bar.dart';
 import 'shopping_list_screen.dart';
 
 class ShoppingListsScreen extends StatefulWidget {
@@ -36,10 +37,13 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
     final provider = context.watch<ShoppingProvider>();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GradientAppBar(
         title: const Text('Listas de compra'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabs: const [
             Tab(icon: Icon(Icons.shopping_cart_outlined), text: 'Mis listas'),
             Tab(icon: Icon(Icons.copy_outlined), text: 'Plantillas'),
