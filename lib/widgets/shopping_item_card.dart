@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/shopping_list_item.dart';
+import '../utils/constants.dart';
 
 class ShoppingItemCard extends StatelessWidget {
   final ShoppingListItem item;
@@ -19,24 +20,75 @@ class ShoppingItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final fmt = NumberFormat.currency(locale: 'es_ES', symbol: '€');
+    final checked = item.isChecked;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: checked
+            ? AppConstants.success.withOpacity(0.07)
+            : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+        border: Border.all(
+          color: checked
+              ? AppConstants.success.withOpacity(0.30)
+              : Colors.transparent,
+          width: 1,
+        ),
+      ),
       child: InkWell(
         onTap: onEdit,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppConstants.radiusLg),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
-              Checkbox(
-                value: item.isChecked,
-                onChanged: (_) => onToggle?.call(),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
+              // Animated circular check button
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onToggle,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutBack,
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: checked
+                        ? const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [AppConstants.success, Color(0xFF00897B)],
+                          )
+                        : null,
+                    border: checked
+                        ? null
+                        : Border.all(
+                            color: cs.outline.withOpacity(0.45),
+                            width: 1.5,
+                          ),
+                    boxShadow: checked
+                        ? [
+                            BoxShadow(
+                              color: AppConstants.success.withOpacity(0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: checked
+                      ? const Icon(Icons.check_rounded,
+                          color: Colors.white, size: 20)
+                      : null,
                 ),
               ),
+              const SizedBox(width: 12),
+
+              // Name + meta
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,62 +96,73 @@ class ShoppingItemCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            item.productName,
-                            style: theme.textTheme.titleSmall?.copyWith(
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 220),
+                            style: theme.textTheme.titleSmall!.copyWith(
                               fontWeight: FontWeight.w600,
-                              decoration: item.isChecked
+                              decoration: checked
                                   ? TextDecoration.lineThrough
                                   : null,
-                              color: item.isChecked ? Colors.grey : null,
+                              decorationColor:
+                                  AppConstants.success.withOpacity(0.6),
+                              color: checked
+                                  ? cs.onSurfaceVariant.withOpacity(0.6)
+                                  : cs.onSurface,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            child: Text(
+                              item.productName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
-                        if (item.hasDiscount)
+                        if (item.hasDiscount) ...[
+                          const SizedBox(width: 6),
                           Container(
-                            margin: const EdgeInsets.only(left: 4),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
+                                horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(4),
+                              color: AppConstants.danger.withOpacity(0.12),
+                              borderRadius:
+                                  BorderRadius.circular(AppConstants.radiusSm),
                             ),
                             child: Text(
                               '-${item.discountPercent.toStringAsFixed(0)}%',
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.red,
+                                color: AppConstants.danger,
                               ),
                             ),
                           ),
+                        ],
                       ],
                     ),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
                         if (item.supermarketName.isNotEmpty) ...[
-                          Icon(Icons.store, size: 12, color: Colors.grey[500]),
-                          const SizedBox(width: 2),
+                          Icon(Icons.store_outlined,
+                              size: 11, color: cs.onSurfaceVariant),
+                          const SizedBox(width: 3),
                           Text(
                             item.supermarketName,
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(color: Colors.grey[500]),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant, fontSize: 11),
                           ),
                           const SizedBox(width: 8),
                         ],
                         Text(
                           '${_fmtQty(item.quantity)} ${item.unit}',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[600]),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant, fontSize: 11),
                         ),
                         if (item.hasDiscount) ...[
                           const SizedBox(width: 6),
                           Text(
                             fmt.format(item.unitPrice),
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[400],
+                              color: cs.onSurfaceVariant.withOpacity(0.5),
                               decoration: TextDecoration.lineThrough,
                               fontSize: 10,
                             ),
@@ -110,25 +173,43 @@ class ShoppingItemCard extends StatelessWidget {
                   ],
                 ),
               ),
+
+              const SizedBox(width: 8),
+
+              // Price + delete
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    fmt.format(item.totalPrice),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: item.isChecked
-                          ? Colors.grey
-                          : theme.colorScheme.primary,
+                  if (item.unitPrice > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: checked
+                            ? AppConstants.success.withOpacity(0.12)
+                            : cs.primaryContainer,
+                        borderRadius:
+                            BorderRadius.circular(AppConstants.radiusSm),
+                      ),
+                      child: Text(
+                        fmt.format(item.totalPrice),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: checked
+                              ? AppConstants.success
+                              : cs.onPrimaryContainer,
+                        ),
+                      ),
                     ),
-                  ),
                   if (onDelete != null)
-                    GestureDetector(
-                      onTap: onDelete,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: GestureDetector(
+                        onTap: onDelete,
                         child: Icon(Icons.delete_outline,
-                            size: 16, color: Colors.red[300]),
+                            size: 16,
+                            color: AppConstants.danger.withOpacity(0.55)),
                       ),
                     ),
                 ],

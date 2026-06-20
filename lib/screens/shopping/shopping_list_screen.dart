@@ -9,6 +9,8 @@ import '../../models/shopping_list.dart';
 import '../../models/shopping_list_item.dart';
 import '../../providers/pantry_provider.dart';
 import '../../providers/shopping_provider.dart';
+import '../../utils/constants.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/shopping_item_card.dart';
 import 'basket_comparison_screen.dart';
 import 'product_search_screen.dart';
@@ -134,77 +136,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ),
       body: Column(
         children: [
-          // Total header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: budgetExceeded
-                  ? Colors.red.withOpacity(0.1)
-                  : theme.colorScheme.surfaceContainerHighest,
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Total: ${fmt.format(total)}',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: budgetExceeded
-                                  ? Colors.red
-                                  : theme.colorScheme.primary,
-                            ),
-                          ),
-                          if (budgetExceeded) ...[
-                            const SizedBox(width: 8),
-                            const Icon(Icons.warning_amber,
-                                color: Colors.red, size: 20),
-                          ],
-                        ],
-                      ),
-                      if (_list.hasBudget) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'Presupuesto: ${fmt.format(_list.budget)}',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[600]),
-                        ),
-                        const SizedBox(height: 4),
-                        LinearProgressIndicator(
-                          value: _list.budget > 0
-                              ? (total / _list.budget).clamp(0.0, 1.0)
-                              : 0,
-                          backgroundColor: Colors.grey[200],
-                          color: budgetExceeded ? Colors.red : Colors.green,
-                        ),
-                      ],
-                      if (items.any((i) => i.isChecked)) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'En carrito: ${fmt.format(checkedTotal)} '
-                          '(${items.where((i) => i.isChecked).length}/${items.length} productos)',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (!_list.isCompleted)
-                  FilledButton.icon(
-                    onPressed: () => _openProductSearch(context),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Añadir'),
-                  ),
-              ],
-            ),
+          // Total header — card con degradado suave
+          _TotalHeader(
+            total: total,
+            checkedTotal: checkedTotal,
+            items: items,
+            list: _list,
+            fmt: fmt,
+            budgetExceeded: budgetExceeded,
+            onAdd: _list.isCompleted ? null : () => _openProductSearch(context),
           ),
 
           // Frequent items suggestions
@@ -362,7 +302,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     if (!mounted || items.isEmpty) return;
     await _showSpendSummary(items);
     if (!mounted) return;
-    _offerAddToPantry(items);
+    await _offerAddToPantry(items);
   }
 
   Future<void> _showSpendSummary(List<ShoppingListItem> items) async {
@@ -399,7 +339,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${selected.length} producto${selected.length == 1 ? '' : 's'} añadido${selected.length == 1 ? '' : 's'} a la despensa'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppConstants.success,
         ),
       );
     }
@@ -466,6 +406,132 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       await context.read<ShoppingProvider>().updateList(updated);
       if (mounted) setState(() => _list = updated);
     }
+  }
+}
+
+// ── Total header ──────────────────────────────────────────────────────────────
+
+class _TotalHeader extends StatelessWidget {
+  final double total;
+  final double checkedTotal;
+  final List<ShoppingListItem> items;
+  final ShoppingList list;
+  final NumberFormat fmt;
+  final bool budgetExceeded;
+  final VoidCallback? onAdd;
+
+  const _TotalHeader({
+    required this.total,
+    required this.checkedTotal,
+    required this.items,
+    required this.list,
+    required this.fmt,
+    required this.budgetExceeded,
+    this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final statusColor = budgetExceeded ? AppConstants.danger : cs.primary;
+    final checkedCount = items.where((i) => i.isChecked).length;
+    final progress = list.hasBudget && list.budget > 0
+        ? (total / list.budget).clamp(0.0, 1.0)
+        : null;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            statusColor.withOpacity(0.10),
+            statusColor.withOpacity(0.03),
+          ],
+        ),
+        border: Border(
+          bottom: BorderSide(color: statusColor.withOpacity(0.18)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.euro_rounded,
+                          color: statusColor, size: 16),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      fmt.format(total),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: statusColor,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    if (budgetExceeded) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.warning_amber_rounded,
+                          color: AppConstants.danger, size: 18),
+                    ],
+                  ],
+                ),
+                if (list.hasBudget) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 5,
+                      backgroundColor: statusColor.withOpacity(0.12),
+                      color: statusColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    budgetExceeded
+                        ? '¡Superado! Ppto: ${fmt.format(list.budget)}'
+                        : 'Ppto: ${fmt.format(list.budget)} · Resta: ${fmt.format(list.budget - total)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: statusColor.withOpacity(0.75),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                if (checkedCount > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'En carrito: ${fmt.format(checkedTotal)} ($checkedCount/${items.length})',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (onAdd != null) ...[
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Añadir'),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -661,19 +727,10 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.add_shopping_cart, size: 72, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(
-            'La lista está vacía.\nPulsa "Añadir" para buscar productos.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[500], fontSize: 16),
-          ),
-        ],
-      ),
+    return const AppEmptyState(
+      icon: Icons.add_shopping_cart_outlined,
+      title: 'La lista está vacía',
+      message: 'Pulsa "Añadir" para buscar productos y añadirlos a la lista.',
     );
   }
 }
