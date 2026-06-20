@@ -7,8 +7,8 @@ class AppConstants {
 
   static const List<String> categories = [
     'General', 'Frutas y verduras', 'Carnes', 'Pescados', 'Lácteos',
-    'Panadería', 'Bebidas', 'Congelados', 'Conservas', 'Cereales y legumbres',
-    'Snacks y dulces', 'Higiene', 'Limpieza', 'Otros',
+    'Frigorífico', 'Panadería', 'Bebidas', 'Congelados', 'Conservas',
+    'Cereales y legumbres', 'Snacks y dulces', 'Higiene', 'Limpieza', 'Otros',
   ];
 
   static const List<({String name, String emoji, Color color})> colorThemes = [
@@ -26,6 +26,7 @@ class AppConstants {
     'Carnes'               => Icons.kebab_dining_outlined,
     'Pescados'             => Icons.set_meal_outlined,
     'Lácteos'              => Icons.egg_alt_outlined,
+    'Frigorífico'          => Icons.kitchen_outlined,
     'Panadería'            => Icons.bakery_dining_outlined,
     'Bebidas'              => Icons.local_drink_outlined,
     'Congelados'           => Icons.ac_unit,
@@ -43,6 +44,7 @@ class AppConstants {
     'Carnes'               => const Color(0xFFE53935),
     'Pescados'             => const Color(0xFF1E88E5),
     'Lácteos'              => const Color(0xFFFDD835),
+    'Frigorífico'          => const Color(0xFF29B6F6),
     'Panadería'            => const Color(0xFFFF8F00),
     'Bebidas'              => const Color(0xFF00ACC1),
     'Congelados'           => const Color(0xFF42A5F5),
