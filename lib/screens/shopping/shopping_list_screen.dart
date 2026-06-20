@@ -318,7 +318,17 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     if (mounted) setState(() => _list = _list.copyWith(completedAt: DateTime.now()));
 
     if (!mounted || items.isEmpty) return;
+    await _showSpendSummary(items);
+    if (!mounted) return;
     _offerAddToPantry(items);
+  }
+
+  Future<void> _showSpendSummary(List<ShoppingListItem> items) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _SpendSummarySheet(listName: _list.name, items: items),
+    );
   }
 
   Future<void> _offerAddToPantry(List<ShoppingListItem> items) async {
@@ -732,6 +742,144 @@ class _AddToPantrySheet extends StatefulWidget {
   @override
   State<_AddToPantrySheet> createState() => _AddToPantrySheetState();
 }
+
+// ── Ticket / spend summary shown after completing a list ──────────────────────
+
+class _SpendSummarySheet extends StatelessWidget {
+  final String listName;
+  final List<ShoppingListItem> items;
+
+  const _SpendSummarySheet({required this.listName, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat.currency(locale: 'es_ES', symbol: '€');
+    final total =
+        items.fold<double>(0, (sum, i) => sum + i.totalPrice);
+    final theme = Theme.of(context);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.65,
+      maxChildSize: 0.9,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (ctx, scrollCtrl) => Column(
+        children: [
+          // Handle
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              children: [
+                const Icon(Icons.receipt_long_outlined),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    listName,
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  DateFormat('dd/MM/yyyy').format(DateTime.now()),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          const Divider(indent: 16, endIndent: 16, height: 16),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollCtrl,
+              itemCount: items.length,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemBuilder: (_, i) {
+                final item = items[i];
+                final qty = item.quantity == item.quantity.truncateToDouble()
+                    ? item.quantity.toInt().toString()
+                    : item.quantity.toStringAsFixed(1);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.productName,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      Text(
+                        '$qty ${item.unit}',
+                        style: TextStyle(
+                            color: Colors.grey[600], fontSize: 13),
+                      ),
+                      if (item.unitPrice > 0) ...[
+                        const SizedBox(width: 12),
+                        Text(
+                          fmt.format(item.totalPrice),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w500, fontSize: 14),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total gastado',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  fmt.format(total),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                16, 0, 16, 16 + MediaQuery.of(context).viewPadding.bottom),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Continuar'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Add to pantry sheet ───────────────────────────────────────────────────────
 
 class _AddToPantrySheetState extends State<_AddToPantrySheet> {
   late Set<String> _selected;

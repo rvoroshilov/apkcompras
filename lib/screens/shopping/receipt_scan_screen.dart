@@ -336,6 +336,34 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       return;
     }
 
+    // Warn about potential duplicate spend if the user already completed a list.
+    bool doRecordSpend = _recordSpend;
+    if (_recordSpend) {
+      final choice = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('¿Registrar gasto?'),
+          content: const Text(
+            'Si ya has completado una lista de la compra para esta misma '
+            'compra, el gasto se contaría dos veces en los gastos del mes.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('No registrar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Registrar igualmente'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (choice == null) return;
+      doRecordSpend = choice;
+    }
+
     final supProv = context.read<SupermarketProvider>();
     final shopProv = context.read<ShoppingProvider>();
     final pantryProv = context.read<PantryProvider>();
@@ -349,7 +377,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         marketId = await supProv.ensureSupermarket(marketName);
       }
 
-      if (_recordSpend) {
+      if (doRecordSpend) {
         final items = included
             .map((l) => ShoppingListItem(
                   id: '',
