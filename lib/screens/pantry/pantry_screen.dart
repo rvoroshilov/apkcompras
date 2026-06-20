@@ -25,11 +25,12 @@ class _PantryScreenState extends State<PantryScreen> {
 
   final _filters = const [
     ('all',       'Todos'),
+    ('in_stock',  'Con stock'),
     ('empty',     'Sin stock'),
+    ('low_stock', 'Stock bajo'),
     ('expiring',  'Caducan pronto'),
     ('expired',   'Caducados'),
     ('ok',        'Bien'),
-    ('low_stock', 'Stock bajo'),
   ];
 
   @override
@@ -502,11 +503,13 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final msg = filter == 'all'
         ? 'Tu despensa está vacía.\nAñade productos con el botón +.'
-        : filter == 'empty'
-            ? '¡Nada agotado!\nTodos tus productos tienen stock.'
-            : filter == 'low_stock'
-                ? '¡Todo en orden!\nNingún producto por debajo del stock mínimo.'
-                : 'No hay productos en esta categoría.';
+        : filter == 'in_stock'
+            ? 'No tienes nada en stock.\nTodos tus productos están agotados.'
+            : filter == 'empty'
+                ? '¡Nada agotado!\nTodos tus productos tienen stock.'
+                : filter == 'low_stock'
+                    ? '¡Todo en orden!\nNingún producto por debajo del stock mínimo.'
+                    : 'No hay productos en esta categoría.';
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
