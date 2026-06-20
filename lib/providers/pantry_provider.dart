@@ -55,7 +55,7 @@ class PantryProvider extends ChangeNotifier {
       name: item.name,
       quantity: item.quantity,
       unit: item.unit,
-      category: item.category,
+      tags: item.tags,
       expiryDate: item.expiryDate,
       imagePath: item.imagePath,
       notes: item.notes,
@@ -100,7 +100,7 @@ class PantryProvider extends ChangeNotifier {
       name: name.trim(),
       quantity: qty,
       unit: unit,
-      category: category,
+      tags: [category],
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     ));

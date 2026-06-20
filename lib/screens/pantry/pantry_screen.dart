@@ -70,7 +70,7 @@ class _PantryScreenState extends State<PantryScreen> {
 
   List<PantryItem> _applyCategory(List<PantryItem> items) {
     if (_category == 'all') return items;
-    return items.where((i) => i.category == _category).toList();
+    return items.where((i) => i.tags.contains(_category)).toList();
   }
 
   @override
@@ -252,10 +252,16 @@ class _GroupedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Group by category, preserving order from AppConstants.categories
+    // Group by primary tag (first), preserving order from AppConstants.categories
     final grouped = <String, List<PantryItem>>{};
     for (final item in items) {
       (grouped[item.category] ??= []).add(item);
+    }
+    // Items with extra tags also appear under their secondary tags
+    for (final item in items) {
+      for (final tag in item.tags.skip(1)) {
+        (grouped[tag] ??= []).add(item);
+      }
     }
     // Sort keys: categories with items first, in the AppConstants order
     final keys = [

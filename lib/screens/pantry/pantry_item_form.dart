@@ -25,7 +25,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
   late TextEditingController _notesCtrl;
   late TextEditingController _minStockCtrl;
   String _unit = 'ud';
-  String _category = 'General';
+  List<String> _tags = ['General'];
   DateTime? _expiryDate;
   String _imagePath = '';
   bool _saving = false;
@@ -43,7 +43,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
     _minStockCtrl = TextEditingController(
         text: (e?.minStock ?? 0) > 0 ? e!.minStock.toString() : '');
     _unit = e?.unit ?? 'ud';
-    _category = e?.category ?? 'General';
+    _tags = List<String>.from(e?.tags ?? ['General']);
     _expiryDate = e?.expiryDate;
     _imagePath = e?.imagePath ?? '';
   }
@@ -99,18 +99,42 @@ class _PantryItemFormState extends State<PantryItemForm> {
             ),
             const SizedBox(height: 12),
 
-            // Categoría
-            DropdownButtonFormField<String>(
-              value: _category,
+            // Etiquetas (multi-selección)
+            InputDecorator(
               decoration: const InputDecoration(
-                labelText: 'Categoría',
-                prefixIcon: Icon(Icons.category_outlined),
+                labelText: 'Etiquetas',
+                prefixIcon: Icon(Icons.label_outline),
                 border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-              items: AppConstants.categories
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                  .toList(),
-              onChanged: (v) => setState(() => _category = v!),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: AppConstants.categories.map((cat) {
+                  final selected = _tags.contains(cat);
+                  final color = AppConstants.categoryColor(cat);
+                  return FilterChip(
+                    avatar: Icon(
+                      AppConstants.categoryIcon(cat),
+                      size: 14,
+                      color: selected ? color : Colors.grey,
+                    ),
+                    label: Text(cat, style: const TextStyle(fontSize: 12)),
+                    selected: selected,
+                    selectedColor: color.withOpacity(0.18),
+                    checkmarkColor: color,
+                    onSelected: (v) => setState(() {
+                      if (v) {
+                        _tags.add(cat);
+                      } else if (_tags.length > 1) {
+                        _tags.remove(cat);
+                      }
+                      // Siempre al menos una etiqueta
+                    }),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -343,7 +367,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
         name: _nameCtrl.text.trim(),
         quantity: qty,
         unit: _unit,
-        category: _category,
+        tags: _tags,
         expiryDate: _expiryDate,
         clearExpiryDate: _expiryDate == null,
         imagePath: _imagePath,
@@ -357,7 +381,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
         name: _nameCtrl.text.trim(),
         quantity: qty,
         unit: _unit,
-        category: _category,
+        tags: _tags,
         expiryDate: _expiryDate,
         imagePath: _imagePath,
         notes: _notesCtrl.text.trim(),

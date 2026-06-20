@@ -27,7 +27,7 @@ class PantryItemCard extends StatelessWidget {
             : item.isOutOfStock
                 ? Colors.red[300]!
                 : Colors.green;
-    final catColor = AppConstants.categoryColor(item.category);
+    final catColor = AppConstants.categoryColor(item.category); // primary tag color
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -50,32 +50,37 @@ class PantryItemCard extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 3),
-                    Row(
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: catColor.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            item.category,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: catColor,
+                        // All tags as small chips
+                        ...item.tags.map((tag) {
+                          final c = AppConstants.categoryColor(tag);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: c.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: c,
+                              ),
+                            ),
+                          );
+                        }),
                         Text(
                           '${_fmtQty(item.quantity)} ${item.unit}',
                           style: theme.textTheme.bodySmall
                               ?.copyWith(color: Colors.grey[600]),
                         ),
-                        if (item.isOutOfStock) ...[
-                          const SizedBox(width: 6),
+                        if (item.isOutOfStock)
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 5, vertical: 1),
@@ -91,9 +96,8 @@ class PantryItemCard extends StatelessWidget {
                                 color: Colors.white,
                               ),
                             ),
-                          ),
-                        ] else if (item.isBelowMinStock) ...[
-                          const SizedBox(width: 6),
+                          )
+                        else if (item.isBelowMinStock)
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 5, vertical: 1),
@@ -110,7 +114,6 @@ class PantryItemCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                        ],
                       ],
                     ),
                     if (item.notes.isNotEmpty)

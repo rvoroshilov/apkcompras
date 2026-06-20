@@ -3,7 +3,7 @@ class PantryItem {
   final String name;
   final double quantity;
   final String unit;
-  final String category;
+  final List<String> tags;
   final DateTime? expiryDate;
   final String imagePath;
   final String notes;
@@ -17,7 +17,7 @@ class PantryItem {
     required this.name,
     required this.quantity,
     this.unit = 'ud',
-    this.category = 'General',
+    this.tags = const ['General'],
     this.expiryDate,
     this.imagePath = '',
     this.notes = '',
@@ -26,6 +26,9 @@ class PantryItem {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  // Getter de compatibilidad: categoría primaria (primera etiqueta).
+  String get category => tags.isNotEmpty ? tags.first : 'General';
 
   bool get isExpired {
     if (expiryDate == null) return false;
@@ -52,7 +55,7 @@ class PantryItem {
         'name': name,
         'quantity': quantity,
         'unit': unit,
-        'category': category,
+        'tags': tags.join(','),
         'expiry_date': expiryDate?.toIso8601String(),
         'image_path': imagePath,
         'notes': notes,
@@ -67,7 +70,12 @@ class PantryItem {
         name: map['name'] as String,
         quantity: (map['quantity'] as num).toDouble(),
         unit: (map['unit'] as String?) ?? 'ud',
-        category: (map['category'] as String?) ?? 'General',
+        // Read 'tags' first (new format), fall back to 'category' (old format).
+        tags: _parseTags(
+          (map['tags'] as String?)?.isNotEmpty == true
+              ? map['tags'] as String
+              : (map['category'] as String?) ?? 'General',
+        ),
         expiryDate: map['expiry_date'] != null
             ? DateTime.parse(map['expiry_date'] as String)
             : null,
@@ -79,11 +87,17 @@ class PantryItem {
         updatedAt: DateTime.parse(map['updated_at'] as String),
       );
 
+  static List<String> _parseTags(String raw) => raw
+      .split(',')
+      .map((t) => t.trim())
+      .where((t) => t.isNotEmpty)
+      .toList();
+
   PantryItem copyWith({
     String? name,
     double? quantity,
     String? unit,
-    String? category,
+    List<String>? tags,
     DateTime? expiryDate,
     bool clearExpiryDate = false,
     String? imagePath,
@@ -95,7 +109,7 @@ class PantryItem {
         name: name ?? this.name,
         quantity: quantity ?? this.quantity,
         unit: unit ?? this.unit,
-        category: category ?? this.category,
+        tags: tags ?? this.tags,
         expiryDate: clearExpiryDate ? null : (expiryDate ?? this.expiryDate),
         imagePath: imagePath ?? this.imagePath,
         notes: notes ?? this.notes,
