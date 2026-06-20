@@ -243,6 +243,52 @@ class ShoppingProvider extends ChangeNotifier {
     // monthlySpend is computed from in-memory state
   }
 
+  /// Registra una compra ya realizada (p. ej. desde un ticket escaneado) como
+  /// una lista ya completada, para que cuente en los gastos. Crea la lista y
+  /// sus líneas en un único batch y devuelve el id de la lista creada.
+  Future<String> registerPurchase({
+    required String name,
+    required DateTime date,
+    required String supermarketName,
+    required List<ShoppingListItem> items,
+  }) async {
+    final fs = FirebaseService();
+    final listId = const Uuid().v4();
+    final list = ShoppingList(
+      id: listId,
+      name: name,
+      createdAt: date,
+      completedAt: date,
+    );
+    final batch = fs.db.batch();
+    batch.set(
+      fs.collection('shopping_lists').doc(listId),
+      list.toMap()..remove('id'),
+    );
+    for (final it in items) {
+      final itemId = const Uuid().v4();
+      final item = ShoppingListItem(
+        id: itemId,
+        listId: listId,
+        productName: it.productName,
+        supermarketName: supermarketName,
+        unitPrice: it.unitPrice,
+        quantity: it.quantity,
+        unit: it.unit,
+        isChecked: true,
+      );
+      batch.set(
+        fs.collection('shopping_list_items').doc(itemId),
+        item.toMap()..remove('id'),
+      );
+    }
+    await batch.commit();
+    ActivityService().log('completed_list', name);
+    // Suscribe los items para que el gasto se refleje al instante en memoria.
+    await loadItems(listId);
+    return listId;
+  }
+
   Future<void> reopenList(String id) async {
     final idx = _lists.indexWhere((l) => l.id == id);
     if (idx < 0) return;

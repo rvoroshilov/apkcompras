@@ -203,6 +203,43 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  /// Guarda el precio de un producto comprado en un supermercado concreto.
+  /// Si el producto ya existe en esa tienda (mismo nombre) actualiza su precio
+  /// (lo que registra un punto en el histórico); si no, lo crea. Se usa al
+  /// registrar una compra/ticket para ir guardando "qué vale cada producto en
+  /// cada tienda".
+  Future<void> recordPurchasePrice({
+    required String supermarketId,
+    required String name,
+    required double price,
+    String unit = 'ud',
+    String category = 'General',
+  }) async {
+    final fs = FirebaseService();
+    final q = name.trim().toLowerCase();
+    final snap = await fs.collection('products')
+        .where('supermarket_id', isEqualTo: supermarketId)
+        .get();
+    for (final d in snap.docs) {
+      final data = d.data();
+      if (((data['name'] as String?) ?? '').trim().toLowerCase() == q) {
+        final existing = Product.fromMap(_productFromFirestore(data, d.id));
+        await update(existing.copyWith(price: price));
+        return;
+      }
+    }
+    await add(Product(
+      id: generateId(),
+      supermarketId: supermarketId,
+      name: name.trim(),
+      price: price,
+      unit: unit,
+      category: category,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ));
+  }
+
   String generateId() => const Uuid().v4();
 
   void clearSearch() {

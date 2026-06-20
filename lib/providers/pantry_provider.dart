@@ -76,6 +76,36 @@ class PantryProvider extends ChangeNotifier {
     // Stream will update _items automatically
   }
 
+  /// Suma [qty] al stock de un producto de la despensa. Si ya existe uno con el
+  /// mismo nombre (sin distinguir mayúsculas) le suma la cantidad; si no, lo
+  /// crea. Se usa al registrar una compra/ticket.
+  Future<void> addStock(String name, double qty,
+      {String unit = 'ud', String category = 'General'}) async {
+    final fs = FirebaseService();
+    final q = name.trim().toLowerCase();
+    final snap = await fs.collection('pantry_items').get();
+    for (final d in snap.docs) {
+      final data = d.data();
+      if (((data['name'] as String?) ?? '').trim().toLowerCase() == q) {
+        final current = (data['quantity'] as num?)?.toDouble() ?? 0.0;
+        await fs.collection('pantry_items').doc(d.id).update({
+          'quantity': current + qty,
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        return;
+      }
+    }
+    await add(PantryItem(
+      id: '',
+      name: name.trim(),
+      quantity: qty,
+      unit: unit,
+      category: category,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ));
+  }
+
   Future<void> delete(String id) async {
     final match = _items.where((i) => i.id == id);
     final name = match.isNotEmpty ? match.first.name : '';

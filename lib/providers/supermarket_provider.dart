@@ -57,6 +57,27 @@ class SupermarketProvider extends ChangeNotifier {
     // Stream will update _items automatically
   }
 
+  /// Devuelve el id de un supermercado con ese nombre; si no existe lo crea.
+  /// Útil al registrar una compra para asegurar que la tienda existe.
+  Future<String> ensureSupermarket(String name) async {
+    final trimmed = name.trim();
+    for (final s in _items) {
+      if (s.name.toLowerCase() == trimmed.toLowerCase()) return s.id;
+    }
+    final s = Supermarket(
+      id: const Uuid().v4(),
+      name: trimmed,
+      color: nextColor(),
+      createdAt: DateTime.now(),
+    );
+    await FirebaseService()
+        .collection('supermarkets')
+        .doc(s.id)
+        .set(s.toMap()..remove('id'));
+    // El stream actualizará _items automáticamente.
+    return s.id;
+  }
+
   Supermarket? getById(String id) {
     try {
       return _items.firstWhere((i) => i.id == id);
