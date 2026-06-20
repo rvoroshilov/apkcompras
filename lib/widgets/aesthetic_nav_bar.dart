@@ -47,6 +47,10 @@ class AestheticNavBar extends StatelessWidget {
                   item: items[i],
                   selected: selected,
                   onTap: () => onItemSelected(i),
+                  gradient: [
+                    cs.primary,
+                    Color.lerp(cs.primary, cs.tertiary, 0.55)!,
+                  ],
                   color: cs.primary,
                   onColor: cs.onPrimary,
                   idleColor: cs.onSurfaceVariant,
@@ -76,6 +80,7 @@ class _NavButton extends StatelessWidget {
   final AestheticNavItem item;
   final bool selected;
   final VoidCallback onTap;
+  final List<Color> gradient;
   final Color color;
   final Color onColor;
   final Color idleColor;
@@ -84,6 +89,7 @@ class _NavButton extends StatelessWidget {
     required this.item,
     required this.selected,
     required this.onTap,
+    required this.gradient,
     required this.color,
     required this.onColor,
     required this.idleColor,
@@ -100,8 +106,23 @@ class _NavButton extends StatelessWidget {
         height: 48,
         padding: EdgeInsets.symmetric(horizontal: selected ? 16 : 12),
         decoration: BoxDecoration(
-          color: selected ? color : Colors.transparent,
+          gradient: selected
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: gradient,
+                )
+              : null,
           borderRadius: BorderRadius.circular(22),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

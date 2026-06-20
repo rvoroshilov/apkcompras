@@ -45,6 +45,7 @@ class App extends StatelessWidget {
     return ThemeData(
       colorScheme: cs,
       useMaterial3: true,
+      fontFamily: 'Nunito',
       scaffoldBackgroundColor: cs.surface,
       appBarTheme: AppBarTheme(
         centerTitle: true,
@@ -82,6 +83,10 @@ class App extends StatelessWidget {
         ),
       ),
       chipTheme: const ChipThemeData(shape: StadiumBorder()),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: cs.primary,
+        circularTrackColor: cs.primary.withOpacity(0.12),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: cs.surfaceContainerHighest.withOpacity(0.4),

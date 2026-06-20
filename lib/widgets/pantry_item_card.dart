@@ -21,12 +21,12 @@ class PantryItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final statusColor = item.isExpired
-        ? Colors.red
+        ? AppConstants.danger
         : item.isExpiringSoon
-            ? Colors.orange
+            ? AppConstants.warning
             : item.isOutOfStock
-                ? Colors.red[300]!
-                : Colors.green;
+                ? AppConstants.danger
+                : AppConstants.success;
     final catColor = AppConstants.categoryColor(item.category); // primary tag color
 
     return Card(
@@ -85,7 +85,7 @@ class PantryItemCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
-                              color: Colors.red[300],
+                              color: AppConstants.danger,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
@@ -102,7 +102,7 @@ class PantryItemCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
-                              color: Colors.blue,
+                              color: AppConstants.info,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
@@ -162,7 +162,7 @@ class PantryItemCard extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Icon(Icons.delete_outline,
-                            size: 18, color: Colors.red[300]),
+                            size: 18, color: AppConstants.danger.withOpacity(0.7)),
                       ),
                     ),
                 ],

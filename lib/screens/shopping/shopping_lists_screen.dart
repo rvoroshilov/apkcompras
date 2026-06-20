@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/shopping_list.dart';
 import '../../providers/shopping_provider.dart';
+import '../../utils/constants.dart';
+import '../../widgets/app_loader.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import 'shopping_list_screen.dart';
 
@@ -35,15 +38,16 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ShoppingProvider>();
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
 
     return Scaffold(
       appBar: GradientAppBar(
         title: const Text('Listas de compra'),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          labelColor: onPrimary,
+          unselectedLabelColor: onPrimary.withOpacity(0.7),
+          indicatorColor: onPrimary,
           tabs: const [
             Tab(icon: Icon(Icons.shopping_cart_outlined), text: 'Mis listas'),
             Tab(icon: Icon(Icons.copy_outlined), text: 'Plantillas'),
@@ -51,7 +55,7 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
         ),
       ),
       body: provider.loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader()
           : TabBarView(
               controller: _tabController,
               children: [
@@ -143,7 +147,7 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
               child: const Text('Cancelar')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppConstants.danger),
             child: const Text('Eliminar'),
           ),
         ],
@@ -366,19 +370,13 @@ class _TemplatesTab extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (templates.isEmpty)
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 32),
-                Icon(Icons.copy_outlined, size: 64, color: Colors.grey[300]),
-                const SizedBox(height: 12),
-                Text(
-                  'Sin plantillas todavía.\nGuarda una lista como plantilla\npara reutilizarla fácilmente.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[500]),
-                ),
-              ],
+          const Padding(
+            padding: EdgeInsets.only(top: 40),
+            child: AppEmptyState(
+              icon: Icons.copy_outlined,
+              title: 'Sin plantillas todavía',
+              message:
+                  'Guarda una lista como plantilla para reutilizarla fácilmente.',
             ),
           )
         else
@@ -404,7 +402,7 @@ class _TemplatesTab extends StatelessWidget {
                       'Creada el ${DateFormat('dd/MM/yyyy', 'es_ES').format(t.createdAt)}'),
                   trailing: IconButton(
                     icon: Icon(Icons.delete_outline,
-                        color: Colors.red[300]),
+                        color: AppConstants.danger.withOpacity(0.7)),
                     onPressed: () =>
                         context.read<ShoppingProvider>().deleteList(t.id),
                   ),
@@ -487,7 +485,7 @@ class _ShoppingListCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppConstants.radiusLg),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -496,16 +494,16 @@ class _ShoppingListCard extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: list.isCompleted
-                      ? Colors.green.withOpacity(0.15)
+                      ? AppConstants.success.withOpacity(0.15)
                       : theme.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
                 ),
                 child: Icon(
                   list.isCompleted
                       ? Icons.check_circle_outline
                       : Icons.shopping_cart_outlined,
                   color: list.isCompleted
-                      ? Colors.green
+                      ? AppConstants.success
                       : theme.colorScheme.primary,
                 ),
               ),
@@ -538,7 +536,8 @@ class _ShoppingListCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.delete_outline, color: Colors.red[300]),
+                icon: Icon(Icons.delete_outline,
+                    color: AppConstants.danger.withOpacity(0.7)),
                 onPressed: onDelete,
               ),
             ],
@@ -554,19 +553,16 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.shopping_cart_outlined,
-              size: 72, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(
-            'No hay listas de compra.\nCrea una con el botón +.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[500], fontSize: 16),
-          ),
-        ],
+    return AppEmptyState(
+      icon: Icons.shopping_cart_outlined,
+      title: 'No hay listas de compra',
+      message: 'Crea tu primera lista para empezar a organizar la compra.',
+      action: FilledButton.icon(
+        onPressed: () =>
+            context.findAncestorStateOfType<_ShoppingListsScreenState>()
+                ?._showCreateDialog(),
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva lista'),
       ),
     );
   }

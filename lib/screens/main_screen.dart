@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import '../utils/constants.dart';
 import '../widgets/aesthetic_nav_bar.dart';
 import 'home/home_screen.dart';
 import 'pantry/pantry_screen.dart';
@@ -75,7 +76,7 @@ class _MainScreenState extends State<MainScreen> {
                       ),
                     ],
                   ),
-                  backgroundColor: Colors.orange[800],
+                  backgroundColor: AppConstants.warning,
                   actions: const [SizedBox.shrink()],
                 ),
               Expanded(

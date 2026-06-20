@@ -79,5 +79,20 @@ class AppConstants {
   static const String notificationChannelName = 'Alertas de caducidad';
   static const String notificationChannelDesc =
       'Notificaciones para productos próximos a caducar';
+
+  // ── Tokens de diseño ───────────────────────────────────────────
+  // Radios unificados para que todas las superficies tengan la misma
+  // redondez según su jerarquía.
+  static const double radiusLg = 20; // tarjetas grandes
+  static const double radiusMd = 16; // filas y contenedores internos
+  static const double radiusSm = 12; // chips y badges pequeños
+
+  // ── Colores semánticos de estado ───────────────────────────────
+  // Son constantes (no dependen del tema de color) para que el rojo
+  // signifique siempre "peligro", el naranja "aviso", etc. en toda la app.
+  static const Color danger  = Color(0xFFE53935); // caducado / eliminar / agotado
+  static const Color warning = Color(0xFFFB8C00); // caduca pronto
+  static const Color success = Color(0xFF43A047); // todo correcto
+  static const Color info    = Color(0xFF1E88E5); // stock bajo / informativo
 }
 

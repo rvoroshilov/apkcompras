@@ -11,6 +11,7 @@ import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../services/firebase_service.dart';
 import '../../utils/backup_helper.dart';
+import '../../utils/constants.dart';
 import '../settings/settings_screen.dart';
 import '../spending/spending_screen.dart';
 
@@ -128,7 +129,7 @@ class HomeScreen extends StatelessWidget {
                   _SectionHeader(
                     icon: Icons.warning_amber_rounded,
                     label: 'Alertas de caducidad',
-                    color: Colors.orange,
+                    color: AppConstants.warning,
                   ),
                   const SizedBox(height: 8),
                   ...pantry.alertItems.take(3).map(
@@ -145,7 +146,7 @@ class HomeScreen extends StatelessWidget {
                   _SectionHeader(
                     icon: Icons.inventory_2_rounded,
                     label: 'Stock bajo — ¿qué falta?',
-                    color: Colors.blue,
+                    color: AppConstants.info,
                   ),
                   const SizedBox(height: 8),
                   ...belowMin.take(5).map((item) => _StockRow(item: item)),
@@ -248,7 +249,7 @@ class HomeScreen extends StatelessWidget {
         SnackBar(
           content: Text(
               '${items.length} producto${items.length == 1 ? '' : 's'} añadido${items.length == 1 ? '' : 's'} a "${targetList.name}"'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppConstants.success,
         ),
       );
     }
@@ -534,9 +535,9 @@ class _BudgetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final baseColor = budgetExceeded
-        ? Colors.red
+        ? AppConstants.danger
         : budgetNearing
-            ? Colors.orange
+            ? AppConstants.warning
             : cs.primary;
 
     return Container(
@@ -621,7 +622,9 @@ class _BudgetCard extends StatelessWidget {
                   : 'Presupuesto: ${fmt.format(budget)} · Resta: ${fmt.format(budget - spend)}',
               style: TextStyle(
                 fontSize: 12,
-                color: budgetExceeded ? Colors.red : baseColor.withOpacity(0.8),
+                color: budgetExceeded
+                    ? AppConstants.danger
+                    : baseColor.withOpacity(0.8),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -693,7 +696,7 @@ class _AlertRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = expired ? Colors.red : Colors.orange;
+    final color = expired ? AppConstants.danger : AppConstants.warning;
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -701,7 +704,7 @@ class _AlertRow extends StatelessWidget {
         gradient: LinearGradient(
           colors: [color.withOpacity(0.10), color.withOpacity(0.03)],
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
         border: Border.all(color: color.withOpacity(0.25)),
       ),
       child: Row(
@@ -749,14 +752,18 @@ class _StockRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.withOpacity(0.08), Colors.blue.withOpacity(0.02)],
+          colors: [
+            AppConstants.info.withOpacity(0.08),
+            AppConstants.info.withOpacity(0.02),
+          ],
         ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+        border: Border.all(color: AppConstants.info.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.inventory_2_outlined, color: Colors.blue, size: 18),
+          const Icon(Icons.inventory_2_outlined,
+              color: AppConstants.info, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child:
@@ -764,9 +771,9 @@ class _StockRow extends StatelessWidget {
           ),
           Text(
             '${_fmtQty(item.quantity)}/${_fmtQty(item.minStock)} ${item.unit}',
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 12,
-                color: Colors.blue[700],
+                color: AppConstants.info,
                 fontWeight: FontWeight.w500),
           ),
         ],
@@ -792,7 +799,7 @@ class _ListRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
       ),
       child: Row(
         children: [

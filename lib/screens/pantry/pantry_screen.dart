@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../models/pantry_item.dart';
 import '../../providers/pantry_provider.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_loader.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/pantry_item_card.dart';
 import 'pantry_item_form.dart';
@@ -175,7 +177,7 @@ class _PantryScreenState extends State<PantryScreen> {
         ),
       ),
       body: provider.loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader()
           : items.isEmpty
               ? _EmptyState(filter: _filter)
               : _grouped
@@ -223,7 +225,7 @@ class _PantryScreenState extends State<PantryScreen> {
               child: const Text('Cancelar')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppConstants.danger),
             child: const Text('Eliminar'),
           ),
         ],
@@ -356,16 +358,16 @@ class _CategoryFolderState extends State<_CategoryFolder> {
                     ),
                   ),
                   if (hasAlert)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
+                    const Padding(
+                      padding: EdgeInsets.only(right: 6),
                       child: Icon(Icons.warning_amber_rounded,
-                          size: 16, color: Colors.orange[700]),
+                          size: 16, color: AppConstants.warning),
                     ),
                   if (hasLow)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
+                    const Padding(
+                      padding: EdgeInsets.only(right: 6),
                       child: Icon(Icons.inventory_2_outlined,
-                          size: 16, color: Colors.blue[700]),
+                          size: 16, color: AppConstants.info),
                     ),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -427,11 +429,11 @@ class _CompactItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final statusColor = item.isExpired
-        ? Colors.red
+        ? AppConstants.danger
         : item.isExpiringSoon
-            ? Colors.orange
+            ? AppConstants.warning
             : item.isOutOfStock
-                ? Colors.red[300]!
+                ? AppConstants.danger
                 : color;
     final fmt = DateFormat('dd/MM/yy');
 
@@ -489,7 +491,7 @@ class _CompactItem extends StatelessWidget {
             GestureDetector(
               onTap: onDelete,
               child: Icon(Icons.delete_outline,
-                  size: 16, color: Colors.red[300]),
+                  size: 16, color: AppConstants.danger.withOpacity(0.7)),
             ),
           ],
         ),
@@ -507,28 +509,33 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final msg = filter == 'all'
-        ? 'Tu despensa está vacía.\nAñade productos con el botón +.'
-        : filter == 'in_stock'
-            ? 'No tienes nada en stock.\nTodos tus productos están agotados.'
-            : filter == 'empty'
-                ? '¡Nada agotado!\nTodos tus productos tienen stock.'
-                : filter == 'low_stock'
-                    ? '¡Todo en orden!\nNingún producto por debajo del stock mínimo.'
-                    : 'No hay productos en esta categoría.';
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.kitchen_outlined, size: 72, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(
-            msg,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[500], fontSize: 16),
-          ),
-        ],
-      ),
-    );
+    final (String title, String message, IconData icon) = switch (filter) {
+      'all' => (
+          'Tu despensa está vacía',
+          'Añade productos con el botón +.',
+          Icons.kitchen_outlined,
+        ),
+      'in_stock' => (
+          'No tienes nada en stock',
+          'Todos tus productos están agotados.',
+          Icons.remove_shopping_cart_outlined,
+        ),
+      'empty' => (
+          '¡Nada agotado!',
+          'Todos tus productos tienen stock.',
+          Icons.check_circle_outline,
+        ),
+      'low_stock' => (
+          '¡Todo en orden!',
+          'Ningún producto por debajo del stock mínimo.',
+          Icons.inventory_2_outlined,
+        ),
+      _ => (
+          'Sin resultados',
+          'No hay productos en esta categoría.',
+          Icons.search_off_outlined,
+        ),
+    };
+    return AppEmptyState(icon: icon, title: title, message: message);
   }
 }
