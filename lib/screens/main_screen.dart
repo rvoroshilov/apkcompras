@@ -1,11 +1,11 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../widgets/aesthetic_nav_bar.dart';
-import 'activity/activity_screen.dart';
 import 'home/home_screen.dart';
 import 'pantry/pantry_screen.dart';
 import 'supermarkets/supermarkets_screen.dart';
 import 'shopping/shopping_lists_screen.dart';
+import 'shopping/receipt_scan_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -17,12 +17,12 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  static const _screens = [
-    HomeScreen(),
-    PantryScreen(),
-    SupermarketsScreen(),
-    ShoppingListsScreen(),
-    ActivityScreen(),
+  static final _screens = [
+    const HomeScreen(),
+    const PantryScreen(),
+    const ReceiptScanScreen(asTab: true),
+    const ShoppingListsScreen(),
+    const SupermarketsScreen(),
   ];
 
   static const _navItems = [
@@ -35,17 +35,17 @@ class _MainScreenState extends State<MainScreen> {
         selectedIcon: Icons.kitchen,
         label: 'Despensa'),
     AestheticNavItem(
-        icon: Icons.store_outlined,
-        selectedIcon: Icons.store,
-        label: 'Tiendas'),
+        icon: Icons.receipt_long_outlined,
+        selectedIcon: Icons.receipt_long,
+        label: 'Escanear'),
     AestheticNavItem(
         icon: Icons.shopping_cart_outlined,
         selectedIcon: Icons.shopping_cart,
         label: 'Compra'),
     AestheticNavItem(
-        icon: Icons.favorite_outline,
-        selectedIcon: Icons.favorite,
-        label: 'Actividad'),
+        icon: Icons.store_outlined,
+        selectedIcon: Icons.store,
+        label: 'Tiendas'),
   ];
 
   @override

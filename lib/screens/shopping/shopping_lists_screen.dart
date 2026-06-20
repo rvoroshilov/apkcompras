@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../models/shopping_list.dart';
 import '../../providers/shopping_provider.dart';
 import '../../widgets/gradient_app_bar.dart';
-import 'receipt_scan_screen.dart';
 import 'shopping_list_screen.dart';
 
 class ShoppingListsScreen extends StatefulWidget {
@@ -40,16 +39,6 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
     return Scaffold(
       appBar: GradientAppBar(
         title: const Text('Listas de compra'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.receipt_long_outlined),
-            tooltip: 'Escanear ticket',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ReceiptScanScreen()),
-            ),
-          ),
-        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,

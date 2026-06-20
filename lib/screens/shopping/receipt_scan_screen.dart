@@ -13,7 +13,8 @@ import '../../utils/receipt_ocr.dart';
 import '../../widgets/gradient_app_bar.dart';
 
 class ReceiptScanScreen extends StatefulWidget {
-  const ReceiptScanScreen({super.key});
+  final bool asTab;
+  const ReceiptScanScreen({super.key, this.asTab = false});
 
   @override
   State<ReceiptScanScreen> createState() => _ReceiptScanScreenState();
@@ -423,7 +424,26 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         }
       }
 
-      navigator.pop();
+      if (widget.asTab) {
+        // Reset to initial state so the tab is ready for a new scan
+        if (mounted) {
+          setState(() {
+            for (final l in _lines) {
+              l.dispose();
+            }
+            _lines.clear();
+            _scanned = false;
+            _saving = false;
+            _supermarketName = '';
+            _date = DateTime.now();
+            _addToStock = true;
+            _savePrices = true;
+            _recordSpend = true;
+          });
+        }
+      } else {
+        navigator.pop();
+      }
       messenger.showSnackBar(
         const SnackBar(content: Text('Compra registrada correctamente')),
       );
