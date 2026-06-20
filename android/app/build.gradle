@@ -77,6 +77,8 @@ android {
         release {
             // Firma estable si hay keystore; si no, debug (solo para local).
             signingConfig (keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug)
+            // Reglas para R8 (necesarias por ML Kit; ver proguard-rules.pro).
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
