@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import '../../services/analytics_service.dart';
 import '../../models/pantry_item.dart';
@@ -75,6 +76,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       appBar: AppBar(
         title: Text(_list.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'Compartir lista',
+            onPressed: () => _shareList(provider),
+          ),
           IconButton(
             icon: const Icon(Icons.savings_outlined),
             tooltip: 'Comparar dónde es más barato',
@@ -265,6 +271,42 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _shareList(ShoppingProvider provider) async {
+    final items = provider.itemsFor(_list.id);
+    final fmt = NumberFormat.currency(locale: 'es_ES', symbol: '€');
+    final sb = StringBuffer();
+    sb.writeln('🛒 Lista: ${_list.name}');
+    sb.writeln();
+
+    final grouped = provider.groupByMarket(_list.id);
+    for (final entry in grouped.entries) {
+      if (grouped.length > 1) {
+        sb.writeln('📍 ${entry.key}');
+      }
+      for (final item in entry.value) {
+        final qty = item.quantity == item.quantity.truncateToDouble()
+            ? item.quantity.toInt().toString()
+            : item.quantity.toStringAsFixed(1);
+        final check = item.isChecked ? '✅' : '☐';
+        final price =
+            item.unitPrice > 0 ? ' — ${fmt.format(item.totalPrice)}' : '';
+        sb.writeln('$check $qty ${item.unit}  ${item.productName}$price');
+      }
+      if (grouped.length > 1) sb.writeln();
+    }
+
+    final total = provider.totalFor(_list.id);
+    if (total > 0) {
+      sb.writeln('─────────────────');
+      sb.writeln('Total: ${fmt.format(total)}');
+    }
+    if (_list.hasBudget) {
+      sb.writeln('Presupuesto: ${fmt.format(_list.budget)}');
+    }
+
+    await Share.share(sb.toString().trim(), subject: 'Lista de la compra: ${_list.name}');
   }
 
   Future<void> _openProductSearch(BuildContext context) async {

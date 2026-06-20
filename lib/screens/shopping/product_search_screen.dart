@@ -8,6 +8,7 @@ import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../utils/constants.dart';
 import '../../widgets/product_card.dart';
+import '../supermarkets/barcode_scanner_screen.dart';
 
 class ProductSearchScreen extends StatefulWidget {
   final String listId;
@@ -106,6 +107,13 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Buscar productos'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_outlined),
+            tooltip: 'Escanear código de barras',
+            onPressed: _scanBarcode,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(116),
           child: Column(
@@ -353,6 +361,37 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
           SnackBar(content: Text('${product.name} añadido a la lista')),
         );
       }
+    }
+  }
+
+  Future<void> _scanBarcode() async {
+    final code = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
+    if (code == null || !mounted) return;
+
+    // Try to find the product by barcode first
+    final product = await context.read<ProductProvider>().getByBarcode(code);
+    if (!mounted) return;
+
+    if (product != null) {
+      // Found: show it directly
+      setState(() {
+        _results = [product];
+        _query = code;
+      });
+    } else {
+      // Not found: show snackbar and let user add manually
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Código no encontrado. Añade el producto manualmente.'),
+          action: SnackBarAction(
+            label: 'Añadir',
+            onPressed: () => _addManual(),
+          ),
+        ),
+      );
     }
   }
 
