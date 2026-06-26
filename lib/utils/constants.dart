@@ -128,12 +128,14 @@ class AppConstants {
         'aguacate', 'brocoli', 'calabacin', 'pepino', 'espinaca'])) {
       return 'Frutas y verduras';
     }
-    if (has(['pan', 'baguette', 'bolleria', 'croissant', 'magdalena',
-        'bizcocho', 'tostada', 'donut', 'napolitana', 'ensaimada'])) {
+    if (has(['pan ', 'pan,', 'baguette', 'bolleria', 'croissant', 'magdalena',
+        'bizcocho', 'tostada', 'donut', 'napolitana', 'ensaimada',
+        'barra de pan'])) {
       return 'Panadería';
     }
-    if (has(['agua', 'refresco', 'cola', 'cerveza', 'vino', 'zumo', 'bebida',
-        'fanta', 'sprite', 'tonica', 'cafe', 'te ', 'infusion', 'leche de'])) {
+    if (has(['agua', 'refresco', 'cocacola', 'coca cola', 'cerveza', 'vino',
+        'zumo', 'bebida', 'fanta', 'sprite', 'tonica', 'cafe', 'infusion',
+        'nestea', 'aquarius', 'gaseosa'])) {
       return 'Bebidas';
     }
     if (has(['congelad', 'helado', 'pizza', 'varitas', 'rebozad', 'nuggets',
