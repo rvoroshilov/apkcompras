@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../models/product.dart';
 import '../../models/shopping_list_item.dart';
 import '../../models/supermarket.dart';
 import '../../providers/pantry_provider.dart';
@@ -11,6 +12,7 @@ import '../../providers/supermarket_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/receipt_ocr.dart';
 import '../../widgets/gradient_app_bar.dart';
+import 'receipt_crop_screen.dart';
 
 class ReceiptScanScreen extends StatefulWidget {
   final bool asTab;
@@ -247,10 +249,18 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         .pickImage(source: source, imageQuality: 90, maxWidth: 1600);
     if (picked == null || !mounted) return;
 
+    // Paso de recorte: el usuario ajusta la zona de productos (o usa entera).
+    final cropped = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ReceiptCropScreen(imagePath: picked.path),
+      ),
+    );
+    if (cropped == null || !mounted) return;
+
     final prodProv = context.read<ProductProvider>();
     setState(() => _processing = true);
     try {
-      final result = await ReceiptOcr.scan(picked.path);
+      final result = await ReceiptOcr.scan(cropped);
       // Corrige los nombres contra los productos ya guardados: cuanto más
       // compras, más afina (corrige erratas del OCR a nombres reales).
       List<String> known = const [];
@@ -388,6 +398,13 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
     setState(() => _saving = true);
     try {
+      // Foto de los precios conocidos ANTES de guardar, para comparar después
+      // si lo comprado está más barato en otra tienda.
+      List<Product> snapshot = const [];
+      try {
+        snapshot = await prodProv.getAll();
+      } catch (_) {}
+
       String? marketId;
       if (marketName.isNotEmpty) {
         marketId = await supProv.ensureSupermarket(marketName);
@@ -441,6 +458,57 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
             );
           }
         }
+      }
+
+      // ¿Algo comprado está más barato en otra tienda donde ya lo compraste?
+      final cheaper = <String>[];
+      if (marketId != null) {
+        for (final l in included) {
+          final price = _parse(l.price.text);
+          if (price <= 0) continue;
+          final nm = l.name.text.trim().toLowerCase();
+          Product? best;
+          for (final p in snapshot) {
+            if (p.supermarketId == marketId) continue;
+            if (p.price <= 0 || p.price >= price) continue;
+            if (p.name.trim().toLowerCase() != nm) continue;
+            if (best == null || p.price < best!.price) best = p;
+          }
+          if (best != null) {
+            final store =
+                supProv.getById(best!.supermarketId)?.name ?? 'otra tienda';
+            cheaper.add(
+                '${l.name.text.trim()} · ${best!.price.toStringAsFixed(2)} € '
+                'en $store (aquí ${price.toStringAsFixed(2)} €)');
+          }
+        }
+      }
+      if (cheaper.isNotEmpty && mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('💡 Más barato en otra tienda'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: cheaper
+                    .map((t) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(t),
+                        ))
+                    .toList(),
+              ),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Entendido'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
       }
 
       if (widget.asTab) {
