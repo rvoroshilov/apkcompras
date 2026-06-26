@@ -96,5 +96,67 @@ class AppConstants {
   static const Color warning = Color(0xFFFB8C00); // caduca pronto
   static const Color success = Color(0xFF43A047); // todo correcto
   static const Color info    = Color(0xFF1E88E5); // stock bajo / informativo
+
+  // ── Adivinar categoría por el nombre del producto ──────────────────
+  // Se usa al crear productos desde el escáner de tickets para no dejarlos
+  // todos en "General". Es una heurística por palabras clave; el usuario
+  // siempre puede corregir la categoría después.
+  static String guessCategory(String name) {
+    final n = name
+        .toLowerCase()
+        .replaceAll(RegExp(r'[áà]'), 'a')
+        .replaceAll(RegExp(r'[éè]'), 'e')
+        .replaceAll(RegExp(r'[íì]'), 'i')
+        .replaceAll(RegExp(r'[óò]'), 'o')
+        .replaceAll(RegExp(r'[úù]'), 'u');
+    bool has(List<String> ks) => ks.any((k) => n.contains(k));
+
+    if (has(['leche', 'yogur', 'queso', 'mantequilla', 'nata', 'cuajada',
+        'kefir', 'batido', 'flan', 'natilla'])) return 'Lácteos';
+    if (has(['huevo', 'jamon', 'chorizo', 'salchichon', 'fiambre', 'lonchas',
+        'mortadela', 'paté', 'pate', 'salchicha', 'bacon', 'beicon',
+        'mayonesa', 'margarina'])) return 'Frigorífico';
+    if (has(['pollo', 'ternera', 'cerdo', 'carne', 'filete', 'chuleta',
+        'lomo', 'costilla', 'pavo', 'cordero', 'hamburguesa', 'albondiga',
+        'picada'])) return 'Carnes';
+    if (has(['pescado', 'merluza', 'salmon', 'atun fresco', 'gambas',
+        'marisco', 'bacalao', 'dorada', 'lubina', 'sardina', 'calamar',
+        'pulpo', 'langostino'])) return 'Pescados';
+    if (has(['manzana', 'platano', 'banana', 'naranja', 'tomate', 'lechuga',
+        'patata', 'cebolla', 'fruta', 'verdura', 'pera', 'uva', 'fresa',
+        'pimiento', 'zanahoria', 'ajo', 'limon', 'melon', 'sandia',
+        'aguacate', 'brocoli', 'calabacin', 'pepino', 'espinaca'])) {
+      return 'Frutas y verduras';
+    }
+    if (has(['pan', 'baguette', 'bolleria', 'croissant', 'magdalena',
+        'bizcocho', 'tostada', 'donut', 'napolitana', 'ensaimada'])) {
+      return 'Panadería';
+    }
+    if (has(['agua', 'refresco', 'cola', 'cerveza', 'vino', 'zumo', 'bebida',
+        'fanta', 'sprite', 'tonica', 'cafe', 'te ', 'infusion', 'leche de'])) {
+      return 'Bebidas';
+    }
+    if (has(['congelad', 'helado', 'pizza', 'varitas', 'rebozad', 'nuggets',
+        'guisantes congel'])) return 'Congelados';
+    if (has(['conserva', 'lata', 'atun', 'mejillon', 'aceituna', 'maiz',
+        'tomate frito', 'garbanzo bote', 'esparrago'])) return 'Conservas';
+    if (has(['arroz', 'pasta', 'macarron', 'espagueti', 'lenteja', 'garbanzo',
+        'judia', 'cereal', 'harina', 'avena', 'legumbre', 'cuscus',
+        'quinoa'])) return 'Cereales y legumbres';
+    if (has(['galleta', 'chocolate', 'snack', 'patatas fritas', 'chips',
+        'gusanito', 'caramelo', 'chuche', 'golosina', 'turron', 'bombon',
+        'dulce'])) return 'Snacks y dulces';
+    if (has(['champu', 'gel', 'jabon', 'pasta de dientes', 'dentifrico',
+        'cepillo', 'desodorante', 'compresa', 'tampon', 'pañal', 'panal',
+        'papel higienico', 'maquinilla', 'colonia', 'crema'])) {
+      return 'Higiene';
+    }
+    if (has(['detergente', 'suavizante', 'lejia', 'limpiacristal',
+        'friegasuelo', 'fregasuelo', 'lavavajillas', 'limpiador',
+        'estropajo', 'bayeta', 'bolsa basura', 'servilleta', 'rollo cocina',
+        'ambientador'])) return 'Limpieza';
+
+    return 'General';
+  }
 }
 

@@ -247,18 +247,33 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         .pickImage(source: source, imageQuality: 90, maxWidth: 1600);
     if (picked == null || !mounted) return;
 
+    final prodProv = context.read<ProductProvider>();
     setState(() => _processing = true);
     try {
-      final found = await ReceiptOcr.scan(picked.path);
+      final result = await ReceiptOcr.scan(picked.path);
+      // Corrige los nombres contra los productos ya guardados: cuanto más
+      // compras, más afina (corrige erratas del OCR a nombres reales).
+      List<String> known = const [];
+      try {
+        known = (await prodProv.getAll()).map((p) => p.name).toList();
+      } catch (_) {}
       if (!mounted) return;
       for (final l in _lines) {
         l.dispose();
       }
       _lines.clear();
-      for (final r in found) {
-        _lines.add(_LineCtrl(name: r.name, price: r.price));
+      for (final r in result.lines) {
+        final corrected = ReceiptOcr.bestMatch(r.name, known) ?? r.name;
+        _lines.add(_LineCtrl(
+          name: corrected,
+          price: r.price,
+          qty: r.quantity,
+        ));
       }
       setState(() {
+        if (result.supermarket != null && _supermarketName.isEmpty) {
+          _supermarketName = result.supermarket!;
+        }
         _scanned = true;
         _processing = false;
       });
@@ -402,10 +417,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
       if (_addToStock) {
         for (final l in included) {
+          final name = l.name.text.trim();
           await pantryProv.addStock(
-            l.name.text.trim(),
+            name,
             _parse(l.qty.text, def: 1),
             unit: l.unit,
+            category: AppConstants.guessCategory(name),
           );
         }
       }
@@ -414,11 +431,13 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         for (final l in included) {
           final price = _parse(l.price.text);
           if (price > 0) {
+            final name = l.name.text.trim();
             await prodProv.recordPurchasePrice(
               supermarketId: marketId,
-              name: l.name.text.trim(),
+              name: name,
               price: price,
               unit: l.unit,
+              category: AppConstants.guessCategory(name),
             );
           }
         }
