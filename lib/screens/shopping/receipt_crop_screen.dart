@@ -37,7 +37,9 @@ class _ReceiptCropScreenState extends State<ReceiptCropScreen> {
   Future<void> _load() async {
     try {
       final bytes = await File(widget.imagePath).readAsBytes();
-      final img = await ui.decodeImageFromList(bytes);
+      // decodeImageFromList (sin prefijo) es el de package:flutter/painting,
+      // que devuelve Future<ui.Image>. El de dart:ui usa callback.
+      final img = await decodeImageFromList(bytes);
       if (mounted) setState(() => _image = img);
     } catch (_) {
       // Si no se puede decodificar, seguimos con la imagen entera.
