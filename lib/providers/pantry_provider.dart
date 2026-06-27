@@ -22,6 +22,11 @@ class PantryProvider extends ChangeNotifier {
   List<PantryItem> get itemsBelowMinStock =>
       _items.where((i) => i.isBelowMinStock).toList();
 
+  /// Productos que conviene reponer: agotados o por debajo del stock mínimo.
+  /// Se usa para generar la "lista sugerida" de la compra.
+  List<PantryItem> get needsRestock =>
+      _items.where((i) => i.isOutOfStock || i.isBelowMinStock).toList();
+
   Future<void> load() async {
     _loading = true;
     notifyListeners();

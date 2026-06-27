@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../models/product.dart';
 import '../../models/shopping_list.dart';
+import '../../models/shopping_list_item.dart';
+import '../../providers/pantry_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../providers/shopping_provider.dart';
+import '../../providers/supermarket_provider.dart';
 import '../../utils/constants.dart';
 import '../../widgets/app_loader.dart';
 import '../../widgets/empty_state.dart';
@@ -43,6 +48,13 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
     return Scaffold(
       appBar: GradientAppBar(
         title: const Text('Listas de compra'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome_outlined),
+            tooltip: 'Lista sugerida (reponer despensa)',
+            onPressed: _createSuggestedList,
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: onPrimary,
@@ -76,6 +88,69 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
       context,
       MaterialPageRoute(
           builder: (_) => ShoppingListScreen(shoppingList: list)),
+    );
+  }
+
+  /// Crea automáticamente una lista con todo lo que hay que reponer en la
+  /// despensa (agotado o bajo de stock), rellenando el precio más barato
+  /// conocido y la tienda donde está más barato.
+  Future<void> _createSuggestedList() async {
+    final pantry = context.read<PantryProvider>();
+    final shop = context.read<ShoppingProvider>();
+    final prodProv = context.read<ProductProvider>();
+    final supProv = context.read<SupermarketProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final toRestock = pantry.needsRestock;
+    if (toRestock.isEmpty) {
+      messenger.showSnackBar(const SnackBar(
+        content: Text(
+            'No hay nada que reponer: tu despensa está bien de stock 👍'),
+      ));
+      return;
+    }
+
+    // Precios conocidos para rellenar el más barato de cada producto.
+    List<Product> products = const [];
+    try {
+      products = await prodProv.getAll();
+    } catch (_) {}
+    if (!mounted) return;
+
+    final name = 'Reposición ${DateFormat('dd/MM').format(DateTime.now())}';
+    final newList = await shop.addListReturning(name, 0);
+
+    for (final p in toRestock) {
+      final needed =
+          (p.minStock > p.quantity) ? (p.minStock - p.quantity) : 1.0;
+      final nm = p.name.trim().toLowerCase();
+      Product? cheapest;
+      for (final prod in products) {
+        if (prod.name.trim().toLowerCase() != nm) continue;
+        if (prod.price <= 0) continue;
+        if (cheapest == null || prod.price < cheapest!.price) cheapest = prod;
+      }
+      await shop.addItem(ShoppingListItem(
+        id: '',
+        listId: newList.id,
+        productName: p.name,
+        quantity: needed,
+        unit: p.unit,
+        unitPrice: cheapest?.price ?? 0.0,
+        supermarketName: cheapest != null
+            ? (supProv.getById(cheapest!.supermarketId)?.name ?? '')
+            : '',
+      ));
+    }
+    if (!mounted) return;
+    messenger.showSnackBar(SnackBar(
+      content: Text(
+          'Lista "$name" creada con ${toRestock.length} producto(s) por reponer'),
+    ));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => ShoppingListScreen(shoppingList: newList)),
     );
   }
 

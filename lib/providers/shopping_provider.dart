@@ -144,6 +144,20 @@ class ShoppingProvider extends ChangeNotifier {
     // Stream updates _lists
   }
 
+  /// Igual que [addList] pero devuelve la lista creada (para poder añadirle
+  /// productos y navegar a ella, p. ej. en la "lista sugerida").
+  Future<ShoppingList> addListReturning(String name, double budget) async {
+    final list = ShoppingList(
+      id: const Uuid().v4(),
+      name: name,
+      budget: budget,
+      createdAt: DateTime.now(),
+    );
+    final map = list.toMap()..remove('id');
+    await FirebaseService().collection('shopping_lists').doc(list.id).set(map);
+    return list;
+  }
+
   Future<void> addTemplate(String name) async {
     final list = ShoppingList(
       id: const Uuid().v4(),
