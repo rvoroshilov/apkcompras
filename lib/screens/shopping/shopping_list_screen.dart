@@ -29,6 +29,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final _analytics = AnalyticsService();
   List<Map<String, dynamic>> _suggestions = [];
   bool _suggestionsExpanded = false;
+  String _groupBy = 'market'; // 'market' (tienda) o 'category' (categoría)
 
   @override
   void initState() {
@@ -69,7 +70,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final fmt = NumberFormat.currency(locale: 'es_ES', symbol: '€');
     final total = provider.totalFor(_list.id);
     final checkedTotal = provider.checkedTotalFor(_list.id);
-    final grouped = provider.groupByMarket(_list.id);
+    final grouped = _groupBy == 'category'
+        ? provider.groupByCategory(_list.id)
+        : provider.groupByMarket(_list.id);
     final items = provider.itemsFor(_list.id);
 
     final budgetExceeded = _list.hasBudget && total > _list.budget;
@@ -122,9 +125,25 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             ),
           PopupMenuButton<String>(
             onSelected: (v) {
-              if (v == 'edit') _editListDialog();
+              if (v == 'edit') {
+                _editListDialog();
+              } else if (v == 'group') {
+                setState(() => _groupBy =
+                    _groupBy == 'market' ? 'category' : 'market');
+              }
             },
             itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'group',
+                child: ListTile(
+                  leading: Icon(_groupBy == 'market'
+                      ? Icons.category_outlined
+                      : Icons.store_outlined),
+                  title: Text(_groupBy == 'market'
+                      ? 'Agrupar por categoría'
+                      : 'Agrupar por tienda'),
+                ),
+              ),
               const PopupMenuItem(
                   value: 'edit',
                   child: ListTile(
@@ -172,7 +191,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.store, size: 16),
+                                  Icon(
+                                    _groupBy == 'category'
+                                        ? AppConstants.categoryIcon(entry.key)
+                                        : Icons.store,
+                                    size: 16,
+                                    color: _groupBy == 'category'
+                                        ? AppConstants.categoryColor(entry.key)
+                                        : null,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     entry.key,

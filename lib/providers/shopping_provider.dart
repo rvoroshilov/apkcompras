@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../models/pantry_item.dart';
 import '../models/shopping_list.dart';
 import '../models/shopping_list_item.dart';
 import '../services/activity_service.dart';
 import '../services/firebase_service.dart';
+import '../utils/constants.dart';
+import '../utils/notification_helper.dart';
 
 class ShoppingProvider extends ChangeNotifier {
   List<ShoppingList> _lists = [];
@@ -255,6 +258,7 @@ class ShoppingProvider extends ChangeNotifier {
     await FirebaseService().collection('shopping_lists').doc(id).update(map);
     ActivityService().log('completed_list', list.name);
     // monthlySpend is computed from in-memory state
+    await _maybeNotifyBudget();
   }
 
   /// Registra una compra ya realizada (p. ej. desde un ticket escaneado) como
@@ -300,6 +304,7 @@ class ShoppingProvider extends ChangeNotifier {
     ActivityService().log('completed_list', name);
     // Suscribe los items para que el gasto se refleje al instante en memoria.
     await loadItems(listId);
+    await _maybeNotifyBudget();
     return listId;
   }
 
@@ -395,6 +400,50 @@ class ShoppingProvider extends ChangeNotifier {
       (map[key] ??= []).add(item);
     }
     return map;
+  }
+
+  /// Agrupa los productos de una lista por categoría (adivinada por el nombre),
+  /// para poder ordenar la compra por pasillos.
+  Map<String, List<ShoppingListItem>> groupByCategory(String listId) {
+    final map = <String, List<ShoppingListItem>>{};
+    for (final item in itemsFor(listId)) {
+      final key = AppConstants.guessCategory(item.productName);
+      (map[key] ??= []).add(item);
+    }
+    return map;
+  }
+
+  /// Avisa con una notificación si el gasto del mes se acerca (80%) o supera
+  /// (100%) el presupuesto mensual. Solo avisa una vez por nivel y mes.
+  Future<void> _maybeNotifyBudget() async {
+    if (_monthlyBudget <= 0) return;
+    final spent = monthlySpend;
+    final ratio = spent / _monthlyBudget;
+    final level = ratio >= 1.0
+        ? 2
+        : ratio >= 0.8
+            ? 1
+            : 0;
+    if (level == 0) return;
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    final key = 'budget_alert_${now.year}_${now.month}';
+    final lastLevel = prefs.getInt(key) ?? 0;
+    if (level <= lastLevel) return;
+    await prefs.setInt(key, level);
+    if (level >= 2) {
+      await NotificationHelper.showBudgetAlert(
+        title: 'Presupuesto del mes superado 🚨',
+        body:
+            'Llevas ${spent.toStringAsFixed(2)} € de ${_monthlyBudget.toStringAsFixed(2)} € este mes.',
+      );
+    } else {
+      await NotificationHelper.showBudgetAlert(
+        title: 'Cerca del presupuesto ⚠️',
+        body:
+            'Llevas ${spent.toStringAsFixed(2)} € (${(ratio * 100).round()}%) de ${_monthlyBudget.toStringAsFixed(2)} €.',
+      );
+    }
   }
 
   @override

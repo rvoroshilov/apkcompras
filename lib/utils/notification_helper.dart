@@ -78,6 +78,15 @@ class NotificationHelper {
     }
   }
 
+  /// Aviso de presupuesto del mes (cerca del límite o superado).
+  /// Usa el id 3 (los 1 y 2 son para caducidades inmediatas).
+  static Future<void> showBudgetAlert({
+    required String title,
+    required String body,
+  }) async {
+    await _showNotification(id: 3, title: title, body: body);
+  }
+
   static Future<void> _showNotification({
     required int id,
     required String title,
