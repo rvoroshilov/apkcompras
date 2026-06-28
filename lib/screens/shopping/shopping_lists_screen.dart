@@ -12,6 +12,7 @@ import '../../utils/constants.dart';
 import '../../widgets/app_loader.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
+import 'repurchase_prediction_screen.dart';
 import 'shopping_list_screen.dart';
 
 class ShoppingListsScreen extends StatefulWidget {
@@ -49,6 +50,15 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
       appBar: GradientAppBar(
         title: const Text('Listas de compra'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.insights_outlined),
+            tooltip: 'Toca reponer (predicción)',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const RepurchasePredictionScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.auto_awesome_outlined),
             tooltip: 'Lista sugerida (reponer despensa)',

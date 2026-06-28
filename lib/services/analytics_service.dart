@@ -102,6 +102,70 @@ class AnalyticsService {
     return entries.map((e) => {'category': e.key, 'total': e.value}).toList();
   }
 
+  /// Predicción de reposición: para cada producto comprado en al menos
+  /// [minPurchases] días distintos, calcula el intervalo medio entre compras y
+  /// estima cuándo tocará volver a comprarlo. Devuelve los que ya tocan o
+  /// están a punto (daysUntil <= [withinDays]), ordenados por urgencia.
+  /// Cada entrada: {name, unit, avg_price, supermarket_name, interval_days,
+  /// last_purchase (DateTime), days_until (int, negativo = ya pasado)}.
+  Future<List<Map<String, dynamic>>> getRepurchasePredictions({
+    int minPurchases = 2,
+    int withinDays = 5,
+  }) async {
+    final items = await _completedItems();
+    final groups = <String, List<_CompletedItem>>{};
+    for (final it in items) {
+      if (it.name.trim().isEmpty) continue;
+      final key = '${it.name.trim().toLowerCase()}|${it.unit}';
+      (groups[key] ??= []).add(it);
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final result = <Map<String, dynamic>>[];
+
+    for (final group in groups.values) {
+      // Días distintos de compra (evita contar varias líneas del mismo ticket).
+      final days = <DateTime>{};
+      for (final it in group) {
+        days.add(DateTime(it.completedAt.year, it.completedAt.month,
+            it.completedAt.day));
+      }
+      if (days.length < minPurchases) continue;
+
+      final sorted = days.toList()..sort();
+      var totalGap = 0;
+      for (var i = 1; i < sorted.length; i++) {
+        totalGap += sorted[i].difference(sorted[i - 1]).inDays;
+      }
+      final avgInterval = totalGap / (sorted.length - 1);
+      if (avgInterval <= 0) continue;
+
+      final last = sorted.last;
+      final predictedNext = last.add(Duration(days: avgInterval.round()));
+      final daysUntil = predictedNext.difference(today).inDays;
+      if (daysUntil > withinDays) continue;
+
+      final avgPrice =
+          group.fold(0.0, (s, i) => s + i.unitPrice) / group.length;
+      result.add({
+        'name': group.first.name,
+        'unit': group.first.unit,
+        'avg_price': double.parse(avgPrice.toStringAsFixed(2)),
+        'supermarket_name': group
+            .map((i) => i.supermarketName)
+            .firstWhere((s) => s.isNotEmpty, orElse: () => ''),
+        'interval_days': avgInterval.round(),
+        'last_purchase': last,
+        'days_until': daysUntil,
+      });
+    }
+
+    result.sort(
+        (a, b) => (a['days_until'] as int).compareTo(b['days_until'] as int));
+    return result;
+  }
+
   /// Most frequently purchased items across completed lists.
   /// Each entry: {'name', 'unit', 'count', 'avg_price', 'supermarket_name'}
   Future<List<Map<String, dynamic>>> getFrequentItems({
