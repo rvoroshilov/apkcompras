@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/pantry_item.dart';
 import '../../providers/pantry_provider.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_dialogs.dart';
 import '../../widgets/app_loader.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -214,24 +215,15 @@ class _PantryScreenState extends State<PantryScreen> {
   }
 
   Future<void> _confirmDelete(String id, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar producto'),
-        content: Text('¿Eliminar "$name" de la despensa?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppConstants.danger),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final ok = await confirmDialog(
+      context,
+      icon: Icons.delete_outline,
+      title: 'Eliminar producto',
+      message: '¿Eliminar "$name" de la despensa?',
+      confirmLabel: 'Eliminar',
+      danger: true,
     );
-    if (ok == true && mounted) {
+    if (ok && mounted) {
       await context.read<PantryProvider>().delete(id);
     }
   }

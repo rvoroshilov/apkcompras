@@ -9,6 +9,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_dialogs.dart';
 import '../../widgets/app_loader.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -221,24 +222,15 @@ class _ShoppingListsScreenState extends State<ShoppingListsScreen>
   }
 
   Future<void> _confirmDelete(ShoppingList list) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar lista'),
-        content: Text('¿Eliminar "${list.name}"?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppConstants.danger),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final ok = await confirmDialog(
+      context,
+      icon: Icons.delete_outline,
+      title: list.isTemplate ? 'Eliminar plantilla' : 'Eliminar lista',
+      message: '¿Eliminar "${list.name}"? Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      danger: true,
     );
-    if (ok == true && mounted) {
+    if (ok && mounted) {
       context.read<ShoppingProvider>().deleteList(list.id);
     }
   }
@@ -489,7 +481,9 @@ class _TemplatesTab extends StatelessWidget {
                     icon: Icon(Icons.delete_outline,
                         color: AppConstants.danger.withOpacity(0.7)),
                     onPressed: () =>
-                        context.read<ShoppingProvider>().deleteList(t.id),
+                        (context.findAncestorStateOfType<
+                                _ShoppingListsScreenState>())
+                            ?._confirmDelete(t),
                   ),
                   onTap: () =>
                       (context.findAncestorStateOfType<_ShoppingListsScreenState>())
