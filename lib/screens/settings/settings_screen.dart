@@ -15,6 +15,7 @@ import '../../utils/backup_helper.dart';
 import '../../utils/catalog_share_helper.dart';
 import '../../utils/constants.dart';
 import '../../utils/notification_helper.dart';
+import '../../widgets/app_dialogs.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../spending/spending_screen.dart';
 import 'house_settings_screen.dart';
@@ -577,7 +578,7 @@ class SettingsScreen extends StatelessWidget {
                       icon: Icons.info_outline, color: Color(0xFF546E7A)),
                   title: Text('MiCompra'),
                   subtitle: Text(
-                      'v1.0.0 — Gestiona tu despensa y lista de la compra'),
+                      'v1.1.0 — Gestiona tu despensa y lista de la compra'),
                 ),
                 const Divider(height: 1),
                 const ListTile(
@@ -698,28 +699,19 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _import(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Importar datos'),
-        content: const Text(
+    final confirm = await confirmDialog(
+      context,
+      icon: Icons.warning_amber_rounded,
+      title: 'Importar datos',
+      message:
           'Vas a restaurar una copia de seguridad (.zip o .db).\n\n'
           'ATENCIÓN: esto SUSTITUIRÁ todos los datos actuales de la app '
           '(despensa, tiendas, productos y listas). Haz primero un export si '
-          'quieres conservarlos.\n\n¿Continuar y elegir el archivo?',
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Elegir archivo'),
-          ),
-        ],
-      ),
+          'quieres conservarlos.',
+      confirmLabel: 'Elegir archivo',
+      danger: true,
     );
-    if (confirm != true || !context.mounted) return;
+    if (!confirm || !context.mounted) return;
 
     final result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result == null || result.files.single.path == null) return;
@@ -898,13 +890,13 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
+        Icon(icon, size: 20, color: cs.onSurfaceVariant),
         const SizedBox(width: 12),
         Expanded(
-          child:
-              Text(label, style: TextStyle(color: Colors.grey[700])),
+          child: Text(label, style: TextStyle(color: cs.onSurfaceVariant)),
         ),
         Text(
           value,
