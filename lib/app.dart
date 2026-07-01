@@ -87,6 +87,37 @@ class App extends StatelessWidget {
         color: cs.primary,
         circularTrackColor: cs.primary.withOpacity(0.12),
       ),
+      // Menús desplegables (⋮) redondeados y con color del tema.
+      popupMenuTheme: PopupMenuThemeData(
+        color: cs.surfaceContainerHigh,
+        surfaceTintColor: Colors.transparent,
+        elevation: 3,
+        shadowColor: Colors.black.withOpacity(0.18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        textStyle: TextStyle(color: cs.onSurface, fontSize: 14),
+      ),
+      // Menús Material 3 (MenuAnchor, DropdownMenu) redondeados.
+      menuTheme: MenuThemeData(
+        style: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(cs.surfaceContainerHigh),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(3),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          ),
+        ),
+      ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(cs.surfaceContainerHigh),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          ),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: cs.surfaceContainerHighest.withOpacity(0.4),
