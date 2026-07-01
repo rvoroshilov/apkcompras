@@ -336,6 +336,7 @@ class _ProductFormState extends State<ProductForm> {
   Future<void> _pickImage() async {
     final choice = await showModalBottomSheet<ImageSource>(
       context: context,
+      showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -314,6 +314,7 @@ class _PantryItemFormState extends State<PantryItemForm> {
   Future<void> _pickImage() async {
     final choice = await showModalBottomSheet<ImageSource>(
       context: context,
+      showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

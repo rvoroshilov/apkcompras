@@ -292,6 +292,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       builder: (ctx) => _ItemEditSheet(
         item: item,
         onSave: (updated) {
