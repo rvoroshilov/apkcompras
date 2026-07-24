@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/pantry_item.dart';
 import '../utils/backup_helper.dart';
 import '../utils/constants.dart';
+import '../utils/quantity.dart';
 
 class PantryItemCard extends StatelessWidget {
   final PantryItem item;
@@ -206,8 +207,7 @@ class PantryItemCard extends StatelessWidget {
     return 'En $days días';
   }
 
-  static String _fmtQty(double q) =>
-      q == q.truncateToDouble() ? q.toInt().toString() : q.toStringAsFixed(1);
+  static String _fmtQty(double q) => formatQuantity(q);
 
   Widget _buildImage(Color catColor) {
     if (item.imagePath.isNotEmpty) {

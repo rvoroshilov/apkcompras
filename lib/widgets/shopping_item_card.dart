@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/shopping_list_item.dart';
 import '../utils/constants.dart';
+import '../utils/quantity.dart';
 
 class ShoppingItemCard extends StatelessWidget {
   final ShoppingListItem item;
@@ -221,6 +222,5 @@ class ShoppingItemCard extends StatelessWidget {
     );
   }
 
-  String _fmtQty(double q) =>
-      q == q.truncateToDouble() ? q.toInt().toString() : q.toStringAsFixed(1);
+  String _fmtQty(double q) => formatQuantity(q);
 }

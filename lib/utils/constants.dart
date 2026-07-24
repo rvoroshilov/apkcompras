@@ -2,7 +2,17 @@ import 'package:flutter/material.dart';
 
 class AppConstants {
   static const List<String> units = [
-    'ud', 'kg', 'g', 'L', 'mL', 'pack', 'caja', 'botella', 'lata', 'bolsa',
+    // Cantidad
+    'ud', 'docena', 'media docena', 'par',
+    // Peso
+    'kg', 'g',
+    // Volumen
+    'L', 'mL',
+    // Envases y formatos
+    'pack', 'paquete', 'caja', 'botella', 'brick', 'lata', 'bote', 'tarro',
+    'bolsa', 'malla', 'sobre', 'barra', 'rollo',
+    // Porciones
+    'loncha', 'rodaja',
   ];
 
   static const List<String> categories = [

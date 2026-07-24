@@ -10,6 +10,7 @@ import '../../models/shopping_list_item.dart';
 import '../../providers/pantry_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/quantity.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/shopping_item_card.dart';
 import 'basket_comparison_screen.dart';
@@ -610,8 +611,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
     final fmt = NumberFormat.currency(locale: 'es_ES', symbol: '€');
     final price =
         double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0;
-    final qty =
-        double.tryParse(_qtyCtrl.text.replaceAll(',', '.')) ?? 1;
+    final qty = parseQuantity(_qtyCtrl.text) ?? 1;
     final discount =
         double.tryParse(_discountCtrl.text.replaceAll(',', '.')) ?? 0;
     final total = price * (1 - discount / 100) * qty;
@@ -729,9 +729,8 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                     unitPrice: double.tryParse(
                             _priceCtrl.text.replaceAll(',', '.')) ??
                         widget.item.unitPrice,
-                    quantity: double.tryParse(
-                            _qtyCtrl.text.replaceAll(',', '.')) ??
-                        widget.item.quantity,
+                    quantity:
+                        parseQuantity(_qtyCtrl.text) ?? widget.item.quantity,
                     discountPercent: double.tryParse(
                             _discountCtrl.text.replaceAll(',', '.')) ??
                         0.0,

@@ -8,6 +8,7 @@ import '../../providers/pantry_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../utils/backup_helper.dart';
 import '../../utils/constants.dart';
+import '../../utils/quantity.dart';
 import '../supermarkets/barcode_scanner_screen.dart';
 
 class PantryItemForm extends StatefulWidget {
@@ -147,13 +148,14 @@ class _PantryItemFormState extends State<PantryItemForm> {
                     controller: _quantityCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Cantidad *',
+                      hintText: 'Ej: 2, 1/2, 1½',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'Requerida';
-                      if (double.tryParse(v.replaceAll(',', '.')) == null) {
+                      if (parseQuantity(v) == null) {
                         return 'Número inválido';
                       }
                       return null;
@@ -357,10 +359,8 @@ class _PantryItemFormState extends State<PantryItemForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
 
-    final qty =
-        double.parse(_quantityCtrl.text.replaceAll(',', '.'));
-    final minStock =
-        double.tryParse(_minStockCtrl.text.replaceAll(',', '.')) ?? 0.0;
+    final qty = parseQuantity(_quantityCtrl.text) ?? 0.0;
+    final minStock = parseQuantity(_minStockCtrl.text) ?? 0.0;
     final provider = context.read<PantryProvider>();
 
     if (_isEdit) {

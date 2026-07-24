@@ -7,6 +7,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/shopping_provider.dart';
 import '../../providers/supermarket_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/quantity.dart';
 import '../../widgets/product_card.dart';
 import '../supermarkets/barcode_scanner_screen.dart';
 
@@ -294,7 +295,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
               // Preview total
               Builder(builder: (_) {
                 final qty =
-                    double.tryParse(qtyCtrl.text.replaceAll(',', '.')) ??
+                    parseQuantity(qtyCtrl.text) ??
                         1;
                 final discount = double.tryParse(
                         discountCtrl.text.replaceAll(',', '.')) ??
@@ -341,7 +342,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
 
     if (ok == true && mounted) {
       final qty =
-          double.tryParse(qtyCtrl.text.replaceAll(',', '.')) ?? 1.0;
+          parseQuantity(qtyCtrl.text) ?? 1.0;
       final discount =
           double.tryParse(discountCtrl.text.replaceAll(',', '.')) ?? 0.0;
       final item = ShoppingListItem(
@@ -518,7 +519,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
       final price =
           double.tryParse(priceCtrl.text.replaceAll(',', '.')) ?? 0.0;
       final qty =
-          double.tryParse(qtyCtrl.text.replaceAll(',', '.')) ?? 1.0;
+          parseQuantity(qtyCtrl.text) ?? 1.0;
       final discount =
           double.tryParse(discountCtrl.text.replaceAll(',', '.')) ?? 0.0;
 
