@@ -48,13 +48,15 @@ double? parseQuantity(String input) {
   return any ? total : null;
 }
 
-const Map<double, String> _prettyFractions = {
-  0.5: '½',
-  0.25: '¼',
-  0.75: '¾',
-  1 / 3: '⅓',
-  2 / 3: '⅔',
-};
+// Lista de pares (valor, símbolo). No se usa un Map<double,...> porque los
+// double no admiten igualdad primitiva como clave de un mapa constante.
+const List<(double, String)> _prettyFractions = [
+  (0.5, '½'),
+  (0.25, '¼'),
+  (0.75, '¾'),
+  (1 / 3, '⅓'),
+  (2 / 3, '⅔'),
+];
 
 /// Muestra una cantidad de forma legible: 2 → "2", 0.5 → "½", 1.5 → "1½",
 /// 0.7 → "0,7".
@@ -62,9 +64,9 @@ String formatQuantity(double q) {
   if (q == q.roundToDouble()) return q.toInt().toString();
   final whole = q.floor();
   final frac = q - whole;
-  for (final e in _prettyFractions.entries) {
-    if ((frac - e.key).abs() < 0.02) {
-      return whole == 0 ? e.value : '$whole${e.value}';
+  for (final (value, symbol) in _prettyFractions) {
+    if ((frac - value).abs() < 0.02) {
+      return whole == 0 ? symbol : '$whole$symbol';
     }
   }
   // Sin fracción "bonita": un decimal con coma (formato español).
